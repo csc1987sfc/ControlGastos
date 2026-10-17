@@ -5,38 +5,56 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Mis Gastos - PresuFácil</title>
   
-  <!-- Enlace al instalador de la app (PWA) -->
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#10B981">
-  
-  <!-- Tailwind CSS para el diseño -->
   <script src="https://cdn.tailwindcss.com"></script>
   
   <style>
-    /* Estilos personalizados para las barras deslizantes (sliders) azules */
+    /* Estilos arreglados para las barras deslizantes (funcionan en táctil) */
     input[type=range] {
       -webkit-appearance: none;
-      appearance: none; /* Aquí está solucionado el aviso de Visual Studio Code */
       width: 100%;
       background: transparent;
+      margin: 10px 0; /* Más espacio para que el dedo no falle */
     }
+    
+    /* El "carril" gris por donde corre la bola */
+    input[type=range]::-webkit-slider-runnable-track {
+      width: 100%;
+      height: 6px;
+      cursor: pointer;
+      background: #e5e7eb;
+      border-radius: 4px;
+    }
+
+    /* La bolita azul que mueves con el dedo */
     input[type=range]::-webkit-slider-thumb {
       -webkit-appearance: none;
-      appearance: none; /* Aquí también */
-      height: 16px;
-      width: 16px;
+      height: 20px; /* Más grande para el dedo */
+      width: 20px;  /* Más grande para el dedo */
       border-radius: 50%;
       background: #3b82f6;
       cursor: pointer;
-      margin-top: -6px;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+      margin-top: -7px; /* Centra la bolita en el carril gris */
+      box-shadow: 0 2px 4px rgba(0,0,0,0.4);
     }
-    input[type=range]::-webkit-slider-runnable-track {
+    
+    /* Reglas para navegadores Mozilla Firefox */
+    input[type=range]::-moz-range-track {
       width: 100%;
-      height: 4px;
+      height: 6px;
       cursor: pointer;
       background: #e5e7eb;
-      border-radius: 2px;
+      border-radius: 4px;
+    }
+    input[type=range]::-moz-range-thumb {
+      height: 20px;
+      width: 20px;
+      border-radius: 50%;
+      background: #3b82f6;
+      cursor: pointer;
+      border: none;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.4);
     }
   </style>
 </head>
@@ -47,7 +65,6 @@
     <!-- CABECERA CON EL CERDITO -->
     <div class="flex items-center justify-between mb-2">
       <div class="flex items-center gap-3">
-        <!-- ¡Aquí está tu cerdito solucionado! -->
         <img src="cerdito.png" alt="Cerdito" class="w-12 h-12 rounded-full bg-white p-1 shadow-sm object-cover">
         <h1 class="text-xl font-bold text-gray-800">PresuFácil</h1>
       </div>
@@ -65,11 +82,11 @@
       <div class="flex justify-between text-sm text-emerald-50 border-t border-emerald-400/50 pt-3">
         <div>
           <p class="text-xs text-emerald-200">INGRESO (+)</p>
-          <p class="font-bold">1800,00 €</p>
+          <p class="font-bold" id="total-ingreso">1800,00 €</p>
         </div>
         <div>
           <p class="text-xs text-emerald-200">FIJOS (-)</p>
-          <p class="font-bold">715,00 €</p>
+          <p class="font-bold" id="total-fijos">715,00 €</p>
         </div>
         <div>
           <p class="text-xs text-emerald-200">TARJETAS (-)</p>
@@ -91,7 +108,7 @@
       </div>
       <div class="flex items-center bg-gray-50 border rounded-lg p-2">
         <span class="text-gray-400 pl-2 pr-1">€</span>
-        <input type="number" id="nomina" value="1800" class="w-full bg-transparent outline-none font-bold text-gray-700">
+        <input type="number" id="nomina" value="1800" class="w-full bg-transparent outline-none font-bold text-gray-700" oninput="recalcularTotal()">
       </div>
     </div>
 
@@ -107,44 +124,44 @@
             <p class="text-xs text-gray-400">Recibos domiciliados</p>
           </div>
         </div>
-        <button class="bg-blue-600 text-white w-8 h-8 rounded-full font-bold flex items-center justify-center shadow-sm hover:bg-blue-700">+</button>
+        <button onclick="añadirGastoFijo()" class="bg-blue-600 text-white w-8 h-8 rounded-full font-bold flex items-center justify-center shadow-sm hover:bg-blue-700">+</button>
       </div>
 
-      <div class="space-y-5">
+      <div class="space-y-5" id="lista-gastos-fijos">
         <!-- Hipoteca/Alquiler -->
         <div class="space-y-2 border-b pb-4 border-gray-50">
           <div class="flex justify-between text-sm font-semibold text-gray-700">
             <span>Alquiler/Hipoteca</span>
-            <span class="text-gray-500">550 €</span>
+            <span class="text-gray-500" id="texto-gasto-1">550 €</span>
           </div>
-          <input type="range" min="0" max="1500" value="550">
+          <input type="range" class="gasto-slider" id="gasto-1" min="0" max="1500" value="550" oninput="actualizarTextoSlider(this, 'texto-gasto-1'); recalcularTotal()">
         </div>
 
         <!-- Luz -->
         <div class="space-y-2 border-b pb-4 border-gray-50">
           <div class="flex justify-between text-sm font-semibold text-gray-700">
             <span>Recibo de la Luz</span>
-            <span class="text-gray-500">85 €</span>
+            <span class="text-gray-500" id="texto-gasto-2">85 €</span>
           </div>
-          <input type="range" min="0" max="300" value="85">
+          <input type="range" class="gasto-slider" id="gasto-2" min="0" max="300" value="85" oninput="actualizarTextoSlider(this, 'texto-gasto-2'); recalcularTotal()">
         </div>
 
         <!-- Agua -->
         <div class="space-y-2 border-b pb-4 border-gray-50">
           <div class="flex justify-between text-sm font-semibold text-gray-700">
             <span>Agua y Basura</span>
-            <span class="text-gray-500">35 €</span>
+            <span class="text-gray-500" id="texto-gasto-3">35 €</span>
           </div>
-          <input type="range" min="0" max="150" value="35">
+          <input type="range" class="gasto-slider" id="gasto-3" min="0" max="150" value="35" oninput="actualizarTextoSlider(this, 'texto-gasto-3'); recalcularTotal()">
         </div>
 
         <!-- Internet -->
         <div class="space-y-2">
           <div class="flex justify-between text-sm font-semibold text-gray-700">
             <span>Internet y Móvil</span>
-            <span class="text-gray-500">45 €</span>
+            <span class="text-gray-500" id="texto-gasto-4">45 €</span>
           </div>
-          <input type="range" min="0" max="150" value="45">
+          <input type="range" class="gasto-slider" id="gasto-4" min="0" max="150" value="45" oninput="actualizarTextoSlider(this, 'texto-gasto-4'); recalcularTotal()">
         </div>
       </div>
     </div>
@@ -171,12 +188,10 @@
           <span class="font-bold text-red-500" id="gasto-visa">0,00 €</span>
         </div>
         
-        <!-- Botón de subir imagen -->
         <button id="btn-foto" class="w-full bg-blue-600 text-white font-semibold py-3 rounded-lg shadow-sm hover:bg-blue-700 flex justify-center items-center gap-2 transition-colors">
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
           Subir Captura de Tarjeta
         </button>
-        <!-- Este es el input invisible que abre la galería del móvil -->
         <input type="file" id="input-foto" accept="image/*" class="hidden">
       </div>
     </div>
@@ -210,10 +225,7 @@
       btnFoto.classList.replace('bg-blue-600', 'bg-gray-500');
 
       try {
-        // 1. Convertimos la foto
         const base64Image = await convertirABase64(file);
-
-        // 2. Se la mandamos al "túnel" que creaste en Supabase
         const urlFuncion = `${SUPABASE_URL}/functions/v1/leer-ticket`;
         
         const respuesta = await fetch(urlFuncion, {
@@ -236,7 +248,11 @@
             mensaje += `- ${gasto.fecha} | ${gasto.comercio} | ${gasto.importe} €\n`;
           });
 
+          // Actualiza el texto de la tarjeta y recalcula el total
           textoGastoVisa.innerText = totalCaptura.toFixed(2) + " €";
+          textoGastoVisa.dataset.valor = totalCaptura; // Guardamos el valor oculto para matemáticas
+          recalcularTotal();
+          
           alert(mensaje + "\nTotal: " + totalCaptura.toFixed(2) + " €");
         } else {
           alert("No se han encontrado gastos en esta foto.");
@@ -252,7 +268,7 @@
       }
     });
 
-    // Traduce la foto del móvil a texto para enviarla
+    // Funciones matemáticas y visuales
     function convertirABase64(file) {
       return new Promise((resolve, reject) => {
         const reader = new FileReader();
@@ -261,4 +277,62 @@
         reader.onerror = error => reject(error);
       });
     }
+
+    // Actualiza el numerito gris cuando mueves la barra
+    function actualizarTextoSlider(sliderElement, textoId) {
+      document.getElementById(textoId).innerText = sliderElement.value + " €";
+    }
+
+    // Recalcula el cartel verde de arriba del todo
+    function recalcularTotal() {
+      // Coge la nómina
+      let nominaValor = Number(document.getElementById('nomina').value) || 0;
+      
+      // Suma todos los gastos fijos de las barras
+      let barras = document.querySelectorAll('.gasto-slider');
+      let fijosValor = 0;
+      barras.forEach(barra => {
+        fijosValor += Number(barra.value);
+      });
+
+      // Coge los gastos de la tarjeta
+      let tarjetaValor = Number(textoGastoVisa.dataset.valor) || 0;
+
+      // Actualiza la tarjeta verde pequeña
+      document.getElementById('total-ingreso').innerText = nominaValor.toFixed(2) + " €";
+      document.getElementById('total-fijos').innerText = fijosValor.toFixed(2) + " €";
+      document.getElementById('total-tarjetas').innerText = tarjetaValor.toFixed(2) + " €";
+
+      // Calcula el DINERO REAL DISPONIBLE
+      let saldo = nominaValor - fijosValor - tarjetaValor;
+      document.getElementById('saldo-total').innerText = saldo.toFixed(2) + " €";
+    }
+
+    // Función para el botón "+" (añade un nuevo gasto en blanco)
+    let contadorNuevosGastos = 5;
+    function añadirGastoFijo() {
+      let nombre = prompt("¿Cómo se llama el nuevo gasto fijo? (Ej: Netflix)");
+      if (!nombre) return; // Si cancela, no hace nada
+
+      let lista = document.getElementById('lista-gastos-fijos');
+      let idTexto = 'texto-gasto-' + contadorNuevosGastos;
+      
+      let nuevoHtml = `
+        <div class="space-y-2 border-b pb-4 border-gray-50">
+          <div class="flex justify-between text-sm font-semibold text-gray-700">
+            <span>${nombre}</span>
+            <span class="text-gray-500" id="${idTexto}">0 €</span>
+          </div>
+          <input type="range" class="gasto-slider" min="0" max="300" value="0" oninput="actualizarTextoSlider(this, '${idTexto}'); recalcularTotal()">
+        </div>
+      `;
+      
+      lista.insertAdjacentHTML('beforeend', nuevoHtml);
+      contadorNuevosGastos++;
+    }
+
+    // Ejecutamos el cálculo inicial nada más cargar la página
+    window.onload = recalcularTotal;
   </script>
+</body>
+</html>

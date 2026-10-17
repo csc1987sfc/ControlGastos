@@ -198,7 +198,7 @@
 
   </div>
 
-  <!-- SCRIPT QUE HABLA CON SUPABASE (SIN PEDIR CLAVES AL USUARIO) -->
+  <!-- SCRIPT MEJORADO CON DETECTOR DE ERRORES -->
   <script>
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('sw.js');
@@ -213,10 +213,8 @@
     const inputFoto = document.getElementById('input-foto');
     const textoGastoVisa = document.getElementById('gasto-visa');
     
-    // Al tocar el botón azul, abrimos la galería
     btnFoto.addEventListener('click', () => inputFoto.click());
 
-    // Cuando tu mujer elige la foto:
     inputFoto.addEventListener('change', async (e) => {
       const file = e.target.files[0];
       if (!file) return;
@@ -239,28 +237,47 @@
 
         const gastos = await respuesta.json();
         
-        if (gastos && gastos.length > 0) {
+        // --- 1. CHIVATO DE ERRORES REALES ---
+        if (gastos.error) {
+          alert("⚠️ ERROR DENTRO DE SUPABASE:\n" + gastos.error + "\n\n(Revisa si pusiste bien el nombre GEMINI_API_KEY en Supabase Secrets)");
+          return; // Cortamos aquí para que no siga intentando sumar
+        }
+
+        // --- 2. ADAPTAR EL FORMATO DE GEMINI ---
+        let listaGastos = [];
+        if (Array.isArray(gastos)) {
+          listaGastos = gastos; // Si viene como lista pura
+        } else if (gastos.gastos && Array.isArray(gastos.gastos)) {
+          listaGastos = gastos.gastos; // Por si Gemini lo mete dentro de una carpeta "gastos"
+        }
+
+        // --- 3. PROCESAR LOS GASTOS ---
+        if (listaGastos.length > 0) {
           let totalCaptura = 0;
           let mensaje = "Se han encontrado estos gastos:\n";
           
-          gastos.forEach(gasto => {
-            totalCaptura += Number(gasto.importe);
-            mensaje += `- ${gasto.fecha} | ${gasto.comercio} | ${gasto.importe} €\n`;
+          listaGastos.forEach(gasto => {
+            // Convertimos posibles comas en puntos para que las matemáticas no fallen
+            let importeLimpio = String(gasto.importe).replace(',', '.');
+            let importeNumero = Number(importeLimpio) || 0;
+            
+            totalCaptura += importeNumero;
+            mensaje += `- ${gasto.fecha} | ${gasto.comercio} | ${importeNumero.toFixed(2)} €\n`;
           });
 
-          // Actualiza el texto de la tarjeta y recalcula el total
           textoGastoVisa.innerText = totalCaptura.toFixed(2) + " €";
-          textoGastoVisa.dataset.valor = totalCaptura; // Guardamos el valor oculto para matemáticas
+          textoGastoVisa.dataset.valor = totalCaptura;
           recalcularTotal();
           
           alert(mensaje + "\nTotal: " + totalCaptura.toFixed(2) + " €");
         } else {
-          alert("No se han encontrado gastos en esta foto.");
+          // Si llegamos aquí, es que Gemini ha respondido algo muy raro
+          alert("Gemini respondió, pero sin gastos. Respuesta cruda:\n" + JSON.stringify(gastos));
         }
 
       } catch (error) {
         console.error(error);
-        alert("Hubo un error de conexión.");
+        alert("Hubo un error de conexión con internet o la página.");
       } finally {
         btnFoto.innerHTML = "📸 Subir Captura de Tarjeta";
         btnFoto.classList.replace('bg-gray-500', 'bg-blue-600');
@@ -268,7 +285,7 @@
       }
     });
 
-    // Funciones matemáticas y visuales
+    // --- FUNCIONES MATEMÁTICAS ---
     function convertirABase64(file) {
       return new Promise((resolve, reject) => {
         const reader = new FileReader();
@@ -278,41 +295,31 @@
       });
     }
 
-    // Actualiza el numerito gris cuando mueves la barra
     function actualizarTextoSlider(sliderElement, textoId) {
       document.getElementById(textoId).innerText = sliderElement.value + " €";
     }
 
-    // Recalcula el cartel verde de arriba del todo
     function recalcularTotal() {
-      // Coge la nómina
       let nominaValor = Number(document.getElementById('nomina').value) || 0;
       
-      // Suma todos los gastos fijos de las barras
       let barras = document.querySelectorAll('.gasto-slider');
       let fijosValor = 0;
-      barras.forEach(barra => {
-        fijosValor += Number(barra.value);
-      });
+      barras.forEach(barra => { fijosValor += Number(barra.value); });
 
-      // Coge los gastos de la tarjeta
       let tarjetaValor = Number(textoGastoVisa.dataset.valor) || 0;
 
-      // Actualiza la tarjeta verde pequeña
       document.getElementById('total-ingreso').innerText = nominaValor.toFixed(2) + " €";
       document.getElementById('total-fijos').innerText = fijosValor.toFixed(2) + " €";
       document.getElementById('total-tarjetas').innerText = tarjetaValor.toFixed(2) + " €";
 
-      // Calcula el DINERO REAL DISPONIBLE
       let saldo = nominaValor - fijosValor - tarjetaValor;
       document.getElementById('saldo-total').innerText = saldo.toFixed(2) + " €";
     }
 
-    // Función para el botón "+" (añade un nuevo gasto en blanco)
     let contadorNuevosGastos = 5;
     function añadirGastoFijo() {
       let nombre = prompt("¿Cómo se llama el nuevo gasto fijo? (Ej: Netflix)");
-      if (!nombre) return; // Si cancela, no hace nada
+      if (!nombre) return; 
 
       let lista = document.getElementById('lista-gastos-fijos');
       let idTexto = 'texto-gasto-' + contadorNuevosGastos;
@@ -326,13 +333,9 @@
           <input type="range" class="gasto-slider" min="0" max="300" value="0" oninput="actualizarTextoSlider(this, '${idTexto}'); recalcularTotal()">
         </div>
       `;
-      
       lista.insertAdjacentHTML('beforeend', nuevoHtml);
       contadorNuevosGastos++;
     }
 
-    // Ejecutamos el cálculo inicial nada más cargar la página
     window.onload = recalcularTotal;
   </script>
-</body>
-</html>

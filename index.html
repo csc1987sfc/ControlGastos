@@ -10,7 +10,7 @@
   <script src="https://cdn.tailwindcss.com"></script>
   
   <style>
-    /* Estilos arreglados para las barras deslizantes */
+    /* Estilos para las barras deslizantes */
     input[type=range] {
       -webkit-appearance: none;
       width: 100%;
@@ -34,8 +34,6 @@
       margin-top: -7px;
       box-shadow: 0 2px 4px rgba(0,0,0,0.4);
     }
-    
-    /* Ventana emergente bonita */
     .modal-oculto { display: none; }
     .modal-visible { display: flex; }
   </style>
@@ -48,9 +46,9 @@
     <div class="flex items-center justify-between mb-2">
       <div class="flex items-center gap-3">
         <img src="cerdito.png" alt="Cerdito" class="w-12 h-12 rounded-full bg-white p-1 shadow-sm object-cover">
-        <h1 class="text-xl font-bold text-gray-800">PresuFácil</h1>
+        <h1 class="text-xl font-bold text-gray-800">PresuFácil <span id="estado-nube" class="text-[10px] text-green-500 ml-1">☁️ Sincronizado</span></h1>
       </div>
-      <!-- Botón para empezar un mes nuevo a cero -->
+      <!-- Botón Nuevo Mes sincronizado -->
       <button onclick="empezarMesNuevo()" class="text-red-500 hover:text-red-700 text-sm flex items-center gap-1 font-semibold bg-red-50 px-2 py-1 rounded-lg">
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
         Nuevo Mes
@@ -60,16 +58,16 @@
     <!-- TARJETA VERDE: RESUMEN DE DINERO -->
     <div class="bg-emerald-500 text-white rounded-2xl p-6 shadow-lg">
       <h2 class="text-emerald-100 font-semibold text-xs uppercase tracking-wider mb-1">Dinero Real Disponible</h2>
-      <p class="text-4xl font-extrabold mb-6" id="saldo-total">1085,00 €</p>
+      <p class="text-4xl font-extrabold mb-6" id="saldo-total">0,00 €</p>
       
       <div class="flex justify-between text-sm text-emerald-50 border-t border-emerald-400/50 pt-3">
         <div>
           <p class="text-xs text-emerald-200">INGRESO (+)</p>
-          <p class="font-bold" id="total-ingreso">1800,00 €</p>
+          <p class="font-bold" id="total-ingreso">0,00 €</p>
         </div>
         <div>
           <p class="text-xs text-emerald-200">FIJOS (-)</p>
-          <p class="font-bold" id="total-fijos">715,00 €</p>
+          <p class="font-bold" id="total-fijos">0,00 €</p>
         </div>
         <div>
           <p class="text-xs text-emerald-200">TARJETAS (-)</p>
@@ -90,11 +88,12 @@
       </div>
       <div class="flex items-center bg-gray-50 border rounded-lg p-2">
         <span class="text-gray-400 pl-2 pr-1">€</span>
-        <input type="number" id="nomina" value="1800" class="w-full bg-transparent outline-none font-bold text-gray-700" oninput="recalcularTotal()">
+        <input type="number" id="nomina" value="0" class="w-full bg-transparent outline-none font-bold text-gray-700" 
+               oninput="recalcularTotal()" onchange="guardarNomina(this.value)">
       </div>
     </div>
 
-    <!-- GASTOS FIJOS MANUALES -->
+    <!-- GASTOS FIJOS DESDE LA NUBE -->
     <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
       <div class="flex justify-between items-center mb-4">
         <div class="flex items-center gap-3">
@@ -108,54 +107,9 @@
         <button onclick="abrirVentanaGasto()" class="bg-blue-600 text-white w-8 h-8 rounded-full font-bold flex items-center justify-center shadow-sm hover:bg-blue-700">+</button>
       </div>
 
+      <!-- Aquí se pintarán los gastos que vienen de Supabase -->
       <div class="space-y-5" id="lista-gastos-fijos">
-        <!-- Hipoteca/Alquiler -->
-        <div class="space-y-2 border-b pb-4 border-gray-50">
-          <div class="flex justify-between text-sm font-semibold text-gray-700 items-center">
-            <span>Alquiler/Hipoteca</span>
-            <div class="flex items-center gap-1 bg-gray-100 px-2 py-1 rounded-md">
-              <input type="number" id="caja-gasto-1" value="550" class="w-16 bg-transparent text-right outline-none text-gray-600 font-bold" oninput="sincronizarBarra('1')">
-              <span class="text-gray-400">€</span>
-            </div>
-          </div>
-          <input type="range" class="gasto-slider" id="gasto-1" min="0" max="1500" value="550" oninput="sincronizarCaja('1')">
-        </div>
-
-        <!-- Luz -->
-        <div class="space-y-2 border-b pb-4 border-gray-50">
-          <div class="flex justify-between text-sm font-semibold text-gray-700 items-center">
-            <span>Recibo de la Luz</span>
-            <div class="flex items-center gap-1 bg-gray-100 px-2 py-1 rounded-md">
-              <input type="number" id="caja-gasto-2" value="85" class="w-16 bg-transparent text-right outline-none text-gray-600 font-bold" oninput="sincronizarBarra('2')">
-              <span class="text-gray-400">€</span>
-            </div>
-          </div>
-          <input type="range" class="gasto-slider" id="gasto-2" min="0" max="1500" value="85" oninput="sincronizarCaja('2')">
-        </div>
-
-        <!-- Agua -->
-        <div class="space-y-2 border-b pb-4 border-gray-50">
-          <div class="flex justify-between text-sm font-semibold text-gray-700 items-center">
-            <span>Agua y Basura</span>
-            <div class="flex items-center gap-1 bg-gray-100 px-2 py-1 rounded-md">
-              <input type="number" id="caja-gasto-3" value="35" class="w-16 bg-transparent text-right outline-none text-gray-600 font-bold" oninput="sincronizarBarra('3')">
-              <span class="text-gray-400">€</span>
-            </div>
-          </div>
-          <input type="range" class="gasto-slider" id="gasto-3" min="0" max="1500" value="35" oninput="sincronizarCaja('3')">
-        </div>
-
-        <!-- Internet -->
-        <div class="space-y-2">
-          <div class="flex justify-between text-sm font-semibold text-gray-700 items-center">
-            <span>Internet y Móvil</span>
-            <div class="flex items-center gap-1 bg-gray-100 px-2 py-1 rounded-md">
-              <input type="number" id="caja-gasto-4" value="45" class="w-16 bg-transparent text-right outline-none text-gray-600 font-bold" oninput="sincronizarBarra('4')">
-              <span class="text-gray-400">€</span>
-            </div>
-          </div>
-          <input type="range" class="gasto-slider" id="gasto-4" min="0" max="1500" value="45" oninput="sincronizarCaja('4')">
-        </div>
+        <div class="text-center text-sm text-gray-400 py-4">⏳ Conectando con la nube...</div>
       </div>
     </div>
 
@@ -171,7 +125,6 @@
         </div>
       </div>
 
-      <!-- Tarjeta Visa *0303 -->
       <div class="bg-gray-50 border rounded-xl p-4 mt-2">
         <div class="flex justify-between items-center mb-3">
           <span class="font-bold text-gray-700 text-sm flex items-center gap-2">
@@ -195,32 +148,213 @@
   <div id="ventana-nuevo-gasto" class="modal-oculto fixed inset-0 bg-black bg-opacity-50 z-50 items-center justify-center p-4">
     <div class="bg-white rounded-2xl w-full max-w-sm p-6 shadow-xl relative">
       <h3 class="text-lg font-bold text-gray-800 mb-4">Añadir Nuevo Gasto Fijo</h3>
-      <p class="text-sm text-gray-500 mb-4">Escribe el nombre del recibo o concepto que quieres añadir a tu lista mensual.</p>
-      
+      <p class="text-sm text-gray-500 mb-4">Escribe el nombre del recibo o concepto que quieres sincronizar en todos los móviles.</p>
       <input type="text" id="input-nombre-gasto" placeholder="Ejemplo: Netflix, Gimnasio..." class="w-full border border-gray-300 rounded-lg p-3 text-gray-700 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 mb-6">
-      
       <div class="flex gap-3 justify-end">
         <button onclick="cerrarVentanaGasto()" class="px-4 py-2 text-gray-500 font-semibold hover:bg-gray-100 rounded-lg">Cancelar</button>
-        <button onclick="confirmarNuevoGasto()" class="px-4 py-2 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 shadow-sm">Añadir</button>
+        <button onclick="confirmarNuevoGasto()" class="px-4 py-2 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 shadow-sm">Añadir a la nube</button>
       </div>
     </div>
   </div>
 
 
- <!-- SCRIPT PRINCIPAL -->
+ <!-- SCRIPT CLOUD PRINCIPAL -->
   <script>
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('sw.js');
     }
 
     // --- ¡PON AQUÍ TUS DATOS PÚBLICOS DE SUPABASE! ---
-    const SUPABASE_URL = "https://urpjnmbhhbzeirktpzcv.supabase.co";
-    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVycGpubWJoaGJ6ZWlya3RwemN2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk2NDU3NDQsImV4cCI6MjA5NTIyMTc0NH0.-DFxwerywoeoiOPzErn2PVCCosTKjuUMIVBBdXQ_RNE";
+    const SUPABASE_URL = "https://PEGA_AQUI_LA_URL.supabase.co";
+    const SUPABASE_ANON_KEY = "PEGA_AQUI_LA_CLAVE_LARGA";
     // --------------------------------------------------
 
+    // "estadoApp" es el cerebro de tu app. Guarda todo y viaja por internet.
+    let estadoApp = {
+      nomina: 1800,
+      saldo_visa: 0,
+      historial_visa: [],
+      gastos_fijos: [
+        { id: "1", nombre: "Alquiler/Hipoteca", valor: 550 },
+        { id: "2", nombre: "Recibo de la Luz", valor: 85 },
+        { id: "3", nombre: "Agua y Basura", valor: 35 },
+        { id: "4", nombre: "Internet y Móvil", valor: 45 }
+      ],
+      contador_fijos: 5
+    };
+
+    // AL ARRANCAR LA APLICACIÓN
+    window.onload = async () => {
+      await cargarDesdeNube();
+    };
+
+    // 1. DESCARGAR DATOS DE SUPABASE
+    async function cargarDesdeNube() {
+      try {
+        const url = `${SUPABASE_URL}/rest/v1/memoria_app?id=eq.1`;
+        const resp = await fetch(url, {
+          headers: {
+            'apikey': SUPABASE_ANON_KEY,
+            'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
+          }
+        });
+        const data = await resp.json();
+        
+        if (data && data.length > 0 && data[0].contenido) {
+           let nube = data[0].contenido;
+           estadoApp.nomina = nube.nomina !== undefined ? nube.nomina : estadoApp.nomina;
+           estadoApp.saldo_visa = nube.saldo_visa !== undefined ? nube.saldo_visa : estadoApp.saldo_visa;
+           estadoApp.historial_visa = nube.historial_visa || estadoApp.historial_visa;
+           
+           if (nube.gastos_fijos) {
+             estadoApp.gastos_fijos = nube.gastos_fijos;
+             estadoApp.contador_fijos = nube.contador_fijos || 5;
+           } else {
+             guardarEnNube(); // Si es la primera vez, sube los gastos fijos por defecto
+           }
+        }
+        dibujarInterfaz();
+      } catch (error) {
+        console.error("Modo sin conexión", error);
+        document.getElementById('estado-nube').innerText = "⚠️ Sin internet";
+        dibujarInterfaz(); 
+      }
+    }
+
+    // 2. SUBIR DATOS A SUPABASE
+    async function guardarEnNube() {
+      try {
+        document.getElementById('estado-nube').innerText = "🔄 Sincronizando...";
+        const url = `${SUPABASE_URL}/rest/v1/memoria_app?id=eq.1`;
+        await fetch(url, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+            'apikey': SUPABASE_ANON_KEY,
+            'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
+          },
+          body: JSON.stringify({ contenido: estadoApp })
+        });
+        setTimeout(() => { document.getElementById('estado-nube').innerText = "☁️ Sincronizado"; }, 1000);
+      } catch (error) {
+        console.error("Error al guardar en la nube", error);
+      }
+    }
+
+    // 3. PINTAR LA PANTALLA CON LOS DATOS DE LA NUBE
+    function dibujarInterfaz() {
+      document.getElementById('nomina').value = estadoApp.nomina;
+      document.getElementById('gasto-visa').innerText = estadoApp.saldo_visa.toFixed(2) + " €";
+      
+      const contenedorFijos = document.getElementById('lista-gastos-fijos');
+      contenedorFijos.innerHTML = ''; 
+      
+      estadoApp.gastos_fijos.forEach(gasto => {
+        let html = `
+        <div class="space-y-2 border-b pb-4 border-gray-50">
+          <div class="flex justify-between text-sm font-semibold text-gray-700 items-center">
+            <span>${gasto.nombre}</span>
+            <div class="flex items-center gap-1 bg-gray-100 px-2 py-1 rounded-md">
+              <input type="number" id="caja-gasto-${gasto.id}" value="${gasto.valor}" class="w-16 bg-transparent text-right outline-none text-gray-600 font-bold" 
+                     oninput="moverBarra('${gasto.id}', this.value)" 
+                     onchange="guardarGasto('${gasto.id}', this.value)">
+              <span class="text-gray-400">€</span>
+            </div>
+          </div>
+          <input type="range" class="gasto-slider" id="gasto-${gasto.id}" min="0" max="1500" value="${gasto.valor}" 
+                 oninput="moverCaja('${gasto.id}', this.value)"
+                 onchange="guardarGasto('${gasto.id}', this.value)">
+        </div>`;
+        contenedorFijos.insertAdjacentHTML('beforeend', html);
+      });
+      
+      recalcularTotal();
+    }
+
+    // 4. FUNCIONES DE LAS BARRAS Y CAJAS
+    function moverBarra(id, valor) {
+      document.getElementById('gasto-' + id).value = valor;
+      recalcularTotal();
+    }
+
+    function moverCaja(id, valor) {
+      document.getElementById('caja-gasto-' + id).value = valor;
+      recalcularTotal();
+    }
+
+    function guardarGasto(id, valor) {
+      let gasto = estadoApp.gastos_fijos.find(g => g.id === id);
+      if (gasto) {
+        gasto.valor = Number(valor);
+        guardarEnNube();
+      }
+    }
+
+    function guardarNomina(valor) {
+      estadoApp.nomina = Number(valor);
+      guardarEnNube();
+      recalcularTotal();
+    }
+    
+    function recalcularTotal() {
+       let nominaValor = Number(document.getElementById('nomina').value) || 0;
+       let fijosValor = 0;
+       
+       estadoApp.gastos_fijos.forEach(g => { 
+          let caja = document.getElementById('caja-gasto-' + g.id);
+          fijosValor += Number(caja ? caja.value : g.valor);
+       });
+       
+       document.getElementById('total-ingreso').innerText = nominaValor.toFixed(2) + " €";
+       document.getElementById('total-fijos').innerText = fijosValor.toFixed(2) + " €";
+       document.getElementById('total-tarjetas').innerText = estadoApp.saldo_visa.toFixed(2) + " €";
+
+       let saldo = nominaValor - fijosValor - estadoApp.saldo_visa;
+       document.getElementById('saldo-total').innerText = saldo.toFixed(2) + " €";
+    }
+
+    // 5. FUNCIONES PARA AÑADIR GASTOS Y NUEVO MES
+    const ventanaModal = document.getElementById('ventana-nuevo-gasto');
+    const inputNuevoNombre = document.getElementById('input-nombre-gasto');
+
+    function abrirVentanaGasto() {
+      inputNuevoNombre.value = ''; 
+      ventanaModal.classList.replace('modal-oculto', 'modal-visible');
+    }
+
+    function cerrarVentanaGasto() {
+      ventanaModal.classList.replace('modal-visible', 'modal-oculto');
+    }
+
+    function confirmarNuevoGasto() {
+      let nombre = inputNuevoNombre.value.trim();
+      if (!nombre) return;
+
+      estadoApp.gastos_fijos.push({
+        id: estadoApp.contador_fijos.toString(),
+        nombre: nombre,
+        valor: 0
+      });
+      estadoApp.contador_fijos++;
+      
+      cerrarVentanaGasto();
+      guardarEnNube();
+      dibujarInterfaz();
+    }
+
+    function empezarMesNuevo() {
+      if(confirm("¿Seguro que quieres borrar el dinero de la tarjeta para todos los móviles y empezar el mes a cero?")) {
+        estadoApp.saldo_visa = 0;
+        estadoApp.historial_visa = [];
+        guardarEnNube();
+        dibujarInterfaz();
+        alert("¡Mes reiniciado en la nube!");
+      }
+    }
+
+    // 6. CÁMARA E INTELIGENCIA ARTIFICIAL (GEMINI)
     const btnFoto = document.getElementById('btn-foto');
     const inputFoto = document.getElementById('input-foto');
-    const textoGastoVisa = document.getElementById('gasto-visa');
     
     btnFoto.addEventListener('click', () => inputFoto.click());
 
@@ -245,23 +379,14 @@
         });
 
         const gastos = await respuesta.json();
-        
         if (gastos.error) {
-          alert("⚠️ ERROR DENTRO DE SUPABASE:\n" + gastos.error);
+          alert("⚠️ ERROR GEMINI:\n" + gastos.error);
           return; 
         }
 
-        let listaGastos = [];
-        if (Array.isArray(gastos)) {
-          listaGastos = gastos; 
-        } else if (gastos.gastos && Array.isArray(gastos.gastos)) {
-          listaGastos = gastos.gastos; 
-        }
+        let listaGastos = Array.isArray(gastos) ? gastos : (gastos.gastos || []);
 
         if (listaGastos.length > 0) {
-          let historialGuardado = JSON.parse(localStorage.getItem('historial_visa_0303')) || [];
-          let saldoAcumulado = Number(localStorage.getItem('saldo_visa_0303')) || 0;
-
           let totalNuevos = 0;
           let gastosAceptados = 0;
           let gastosIgnorados = 0;
@@ -270,39 +395,32 @@
           listaGastos.forEach(gasto => {
             let importeLimpio = String(gasto.importe).replace(',', '.');
             let importeNumero = Math.abs(Number(importeLimpio) || 0); 
-            
             let idGasto = `${gasto.fecha} - ${gasto.comercio} - ${importeNumero}`;
 
-            if (historialGuardado.includes(idGasto)) {
+            if (estadoApp.historial_visa.includes(idGasto)) {
               gastosIgnorados++; 
             } else {
-              historialGuardado.push(idGasto);
+              estadoApp.historial_visa.push(idGasto);
               totalNuevos += importeNumero;
               gastosAceptados++;
               mensaje += `✅ Nuevo: ${gasto.fecha} | ${gasto.comercio} | ${importeNumero.toFixed(2)} €\n`;
             }
           });
 
-          saldoAcumulado += totalNuevos;
-
-          localStorage.setItem('historial_visa_0303', JSON.stringify(historialGuardado));
-          localStorage.setItem('saldo_visa_0303', saldoAcumulado);
-
-          textoGastoVisa.innerText = saldoAcumulado.toFixed(2) + " €";
-          textoGastoVisa.dataset.valor = saldoAcumulado;
-          recalcularTotal();
+          if (gastosAceptados > 0) {
+            estadoApp.saldo_visa += totalNuevos;
+            guardarEnNube(); // Subimos el nuevo gasto a Supabase
+            dibujarInterfaz();
+          }
           
-          mensaje += `\nResumen: ${gastosAceptados} nuevos añadidos, ${gastosIgnorados} repetidos ignorados.\n`;
-          mensaje += `Total restado a tu nómina hoy: ${totalNuevos.toFixed(2)} €`;
+          mensaje += `\nResumen: ${gastosAceptados} nuevos, ${gastosIgnorados} repetidos ignorados.\n`;
           alert(mensaje);
 
         } else {
-          alert("Gemini no ha detectado ningún gasto válido en la foto.");
+          alert("Gemini no ha detectado ningún gasto válido.");
         }
-
       } catch (error) {
-        console.error(error);
-        alert("Hubo un error de conexión con internet.");
+        alert("Hubo un error de conexión.");
       } finally {
         btnFoto.innerHTML = "📸 Subir Captura de Tarjeta";
         btnFoto.classList.replace('bg-gray-500', 'bg-blue-600');
@@ -310,7 +428,7 @@
       }
     });
 
-    // --- COMPRESOR DE IMAGEN PARA QUE VAYA RÁPIDO ---
+    // COMPRESOR DE IMAGEN DE ALTO RENDIMIENTO
     function convertirABase64(file) {
       return new Promise((resolve, reject) => {
         const reader = new FileReader();
@@ -323,125 +441,20 @@
             let width = img.width;
             let height = img.height;
             const MAX_WIDTH = 800; 
-
             if (width > MAX_WIDTH) {
               height = Math.round((height * MAX_WIDTH) / width);
               width = MAX_WIDTH;
             }
-
             canvas.width = width;
             canvas.height = height;
-
             const ctx = canvas.getContext('2d');
             ctx.drawImage(img, 0, 0, width, height);
-            
-            const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
-            resolve(dataUrl.split(',')[1]);
+            resolve(canvas.toDataURL('image/jpeg', 0.7).split(',')[1]);
           };
         };
         reader.onerror = error => reject(error);
       });
     }
-
-    // --- SINCRONIZACIÓN CAJAS DE TEXTO Y BARRAS ---
-    function sincronizarCaja(idGasto) {
-      // Si muevo la barra, actualizo el texto
-      let barra = document.getElementById('gasto-' + idGasto);
-      let caja = document.getElementById('caja-gasto-' + idGasto);
-      caja.value = barra.value;
-      recalcularTotal();
-    }
-
-    function sincronizarBarra(idGasto) {
-      // Si escribo un número exacto en la caja, actualizo la barra
-      let barra = document.getElementById('gasto-' + idGasto);
-      let caja = document.getElementById('caja-gasto-' + idGasto);
-      
-      // Si el usuario escribe un número mayor a 1500, le dejamos pero la barra se queda al máximo
-      barra.value = caja.value; 
-      recalcularTotal();
-    }
-
-    function recalcularTotal() {
-      let nominaValor = Number(document.getElementById('nomina').value) || 0;
-      
-      // Cogemos el valor de las cajas de texto en vez de las barras para ser precisos al céntimo
-      let cajas = document.querySelectorAll('input[id^="caja-gasto-"]');
-      let fijosValor = 0;
-      cajas.forEach(caja => { fijosValor += Number(caja.value); });
-
-      let tarjetaValor = Number(textoGastoVisa.dataset.valor) || 0;
-
-      document.getElementById('total-ingreso').innerText = nominaValor.toFixed(2) + " €";
-      document.getElementById('total-fijos').innerText = fijosValor.toFixed(2) + " €";
-      document.getElementById('total-tarjetas').innerText = tarjetaValor.toFixed(2) + " €";
-
-      let saldo = nominaValor - fijosValor - tarjetaValor;
-      document.getElementById('saldo-total').innerText = saldo.toFixed(2) + " €";
-    }
-
-    // --- VENTANA EMERGENTE PARA NUEVOS GASTOS ---
-    const ventanaModal = document.getElementById('ventana-nuevo-gasto');
-    const inputNuevoNombre = document.getElementById('input-nombre-gasto');
-    let contadorNuevosGastos = 5;
-
-    function abrirVentanaGasto() {
-      inputNuevoNombre.value = ''; // Limpiamos el texto
-      ventanaModal.classList.replace('modal-oculto', 'modal-visible');
-    }
-
-    function cerrarVentanaGasto() {
-      ventanaModal.classList.replace('modal-visible', 'modal-oculto');
-    }
-
-    function confirmarNuevoGasto() {
-      let nombre = inputNuevoNombre.value.trim();
-      if (!nombre) {
-        alert("Por favor, escribe un nombre para el gasto.");
-        return; 
-      }
-
-      let lista = document.getElementById('lista-gastos-fijos');
-      let idTexto = contadorNuevosGastos;
-      
-      let nuevoHtml = `
-        <div class="space-y-2 border-b pb-4 border-gray-50">
-          <div class="flex justify-between text-sm font-semibold text-gray-700 items-center">
-            <span>${nombre}</span>
-            <div class="flex items-center gap-1 bg-gray-100 px-2 py-1 rounded-md">
-              <input type="number" id="caja-gasto-${idTexto}" value="0" class="w-16 bg-transparent text-right outline-none text-gray-600 font-bold" oninput="sincronizarBarra('${idTexto}')">
-              <span class="text-gray-400">€</span>
-            </div>
-          </div>
-          <input type="range" class="gasto-slider" id="gasto-${idTexto}" min="0" max="1500" value="0" oninput="sincronizarCaja('${idTexto}')">
-        </div>
-      `;
-      
-      lista.insertAdjacentHTML('beforeend', nuevoHtml);
-      contadorNuevosGastos++;
-      cerrarVentanaGasto();
-    }
-
-    // --- FUNCIÓN DE NUEVO MES (BORRAR MEMORIA) ---
-    function empezarMesNuevo() {
-      if(confirm("¿Estás seguro de que quieres borrar el dinero de la tarjeta y empezar el mes a cero? (Los gastos fijos no se borrarán).")) {
-        localStorage.removeItem('historial_visa_0303');
-        localStorage.removeItem('saldo_visa_0303');
-        
-        textoGastoVisa.innerText = "0.00 €";
-        textoGastoVisa.dataset.valor = 0;
-        recalcularTotal();
-        alert("¡Mes reiniciado! Tarjeta a cero.");
-      }
-    }
-
-    // AL ARRANCAR LA APLICACIÓN:
-    window.onload = () => {
-      let saldoGuardado = Number(localStorage.getItem('saldo_visa_0303')) || 0;
-      textoGastoVisa.innerText = saldoGuardado.toFixed(2) + " €";
-      textoGastoVisa.dataset.valor = saldoGuardado;
-      recalcularTotal();
-    };
   </script>
 </body>
 </html>

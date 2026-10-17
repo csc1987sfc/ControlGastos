@@ -198,7 +198,7 @@
 
   </div>
 
-  <!-- SCRIPT MEJORADO CON DETECTOR DE ERRORES -->
+ <!-- SCRIPT DEFINITIVO CON MEMORIA Y ANTI-DUPLICADOS -->
   <script>
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('sw.js');
@@ -219,7 +219,7 @@
       const file = e.target.files[0];
       if (!file) return;
 
-      btnFoto.innerHTML = "⏳ Enviando a Supabase...";
+      btnFoto.innerHTML = "⏳ Leyendo e identificando...";
       btnFoto.classList.replace('bg-blue-600', 'bg-gray-500');
 
       try {
@@ -237,47 +237,73 @@
 
         const gastos = await respuesta.json();
         
-        // --- 1. CHIVATO DE ERRORES REALES ---
         if (gastos.error) {
-          alert("⚠️ ERROR DENTRO DE SUPABASE:\n" + gastos.error + "\n\n(Revisa si pusiste bien el nombre GEMINI_API_KEY en Supabase Secrets)");
-          return; // Cortamos aquí para que no siga intentando sumar
+          alert("⚠️ ERROR DENTRO DE SUPABASE:\n" + gastos.error);
+          return; 
         }
 
-        // --- 2. ADAPTAR EL FORMATO DE GEMINI ---
         let listaGastos = [];
         if (Array.isArray(gastos)) {
-          listaGastos = gastos; // Si viene como lista pura
+          listaGastos = gastos; 
         } else if (gastos.gastos && Array.isArray(gastos.gastos)) {
-          listaGastos = gastos.gastos; // Por si Gemini lo mete dentro de una carpeta "gastos"
+          listaGastos = gastos.gastos; 
         }
 
-        // --- 3. PROCESAR LOS GASTOS ---
         if (listaGastos.length > 0) {
-          let totalCaptura = 0;
-          let mensaje = "Se han encontrado estos gastos:\n";
+          // --- INICIO DEL SISTEMA ANTI-DUPLICADOS ---
+          
+          // 1. Abrimos la memoria del móvil para ver qué gastos y dinero teníamos ya guardados
+          let historialGuardado = JSON.parse(localStorage.getItem('historial_visa_0303')) || [];
+          let saldoAcumulado = Number(localStorage.getItem('saldo_visa_0303')) || 0;
+
+          let totalNuevos = 0;
+          let gastosAceptados = 0;
+          let gastosIgnorados = 0;
+          let mensaje = "Resultado de la lectura:\n\n";
           
           listaGastos.forEach(gasto => {
-            // Convertimos posibles comas en puntos para que las matemáticas no fallen
             let importeLimpio = String(gasto.importe).replace(',', '.');
             let importeNumero = Math.abs(Number(importeLimpio) || 0); // Convertimos siempre a positivo
             
-            totalCaptura += importeNumero;
-            mensaje += `- ${gasto.fecha} | ${gasto.comercio} | ${importeNumero.toFixed(2)} €\n`;
+            // 2. Creamos la Etiqueta Única (Fecha + Nombre + Precio)
+            let idGasto = `${gasto.fecha} - ${gasto.comercio} - ${importeNumero}`;
+
+            // 3. Comprobamos si esa etiqueta ya existe en la memoria
+            if (historialGuardado.includes(idGasto)) {
+              gastosIgnorados++; // Si existe, lo ignoramos
+            } else {
+              // Si es nuevo, lo guardamos en la memoria y lo sumamos
+              historialGuardado.push(idGasto);
+              totalNuevos += importeNumero;
+              gastosAceptados++;
+              mensaje += `✅ Nuevo: ${gasto.fecha} | ${gasto.comercio} | ${importeNumero.toFixed(2)} €\n`;
+            }
           });
 
-          textoGastoVisa.innerText = totalCaptura.toFixed(2) + " €";
-          textoGastoVisa.dataset.valor = totalCaptura;
+          // 4. Sumamos lo nuevo al total que ya teníamos de días anteriores
+          saldoAcumulado += totalNuevos;
+
+          // 5. Guardamos todo actualizado en la memoria del móvil
+          localStorage.setItem('historial_visa_0303', JSON.stringify(historialGuardado));
+          localStorage.setItem('saldo_visa_0303', saldoAcumulado);
+
+          // 6. Actualizamos los textos en la pantalla
+          textoGastoVisa.innerText = saldoAcumulado.toFixed(2) + " €";
+          textoGastoVisa.dataset.valor = saldoAcumulado;
           recalcularTotal();
           
-          alert(mensaje + "\nTotal: " + totalCaptura.toFixed(2) + " €");
+          // Resumen para ti
+          mensaje += `\nResumen: ${gastosAceptados} nuevos añadidos, ${gastosIgnorados} repetidos ignorados.\n`;
+          mensaje += `Total restado a tu nómina hoy: ${totalNuevos.toFixed(2)} €`;
+          alert(mensaje);
+
         } else {
-          // Si llegamos aquí, es que Gemini ha respondido algo muy raro
-          alert("Gemini respondió, pero sin gastos. Respuesta cruda:\n" + JSON.stringify(gastos));
+          alert("Gemini no ha detectado ningún gasto válido en la foto.");
         }
 
       } catch (error) {
         console.error(error);
-        alert("Hubo un error de conexión con internet o la página.");
+        alert("Hubo un error de conexión con internet.");
       } finally {
         btnFoto.innerHTML = "📸 Subir Captura de Tarjeta";
         btnFoto.classList.replace('bg-gray-500', 'bg-blue-600');
@@ -337,5 +363,14 @@
       contadorNuevosGastos++;
     }
 
-    window.onload = recalcularTotal;
+    // AL ARRANCAR LA APLICACIÓN:
+    window.onload = () => {
+      // Cargamos el saldo de la tarjeta desde la memoria del móvil (por si cerramos la app ayer)
+      let saldoGuardado = Number(localStorage.getItem('saldo_visa_0303')) || 0;
+      textoGastoVisa.innerText = saldoGuardado.toFixed(2) + " €";
+      textoGastoVisa.dataset.valor = saldoGuardado;
+      
+      recalcularTotal();
+    };
   </script>
+ 

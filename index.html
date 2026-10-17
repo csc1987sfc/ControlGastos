@@ -259,7 +259,7 @@
           listaGastos.forEach(gasto => {
             // Convertimos posibles comas en puntos para que las matemáticas no fallen
             let importeLimpio = String(gasto.importe).replace(',', '.');
-            let importeNumero = Number(importeLimpio) || 0;
+            let importeNumero = Math.abs(Number(importeLimpio) || 0); // Convertimos siempre a positivo
             
             totalCaptura += importeNumero;
             mensaje += `- ${gasto.fecha} | ${gasto.comercio} | ${importeNumero.toFixed(2)} €\n`;

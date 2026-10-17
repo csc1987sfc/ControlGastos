@@ -10,15 +10,13 @@
   <script src="https://cdn.tailwindcss.com"></script>
   
   <style>
-    /* Estilos arreglados para las barras deslizantes (funcionan en táctil) */
+    /* Estilos arreglados para las barras deslizantes */
     input[type=range] {
       -webkit-appearance: none;
       width: 100%;
       background: transparent;
-      margin: 10px 0; /* Más espacio para que el dedo no falle */
+      margin: 10px 0;
     }
-    
-    /* El "carril" gris por donde corre la bola */
     input[type=range]::-webkit-slider-runnable-track {
       width: 100%;
       height: 6px;
@@ -26,51 +24,36 @@
       background: #e5e7eb;
       border-radius: 4px;
     }
-
-    /* La bolita azul que mueves con el dedo */
     input[type=range]::-webkit-slider-thumb {
       -webkit-appearance: none;
-      height: 20px; /* Más grande para el dedo */
-      width: 20px;  /* Más grande para el dedo */
-      border-radius: 50%;
-      background: #3b82f6;
-      cursor: pointer;
-      margin-top: -7px; /* Centra la bolita en el carril gris */
-      box-shadow: 0 2px 4px rgba(0,0,0,0.4);
-    }
-    
-    /* Reglas para navegadores Mozilla Firefox */
-    input[type=range]::-moz-range-track {
-      width: 100%;
-      height: 6px;
-      cursor: pointer;
-      background: #e5e7eb;
-      border-radius: 4px;
-    }
-    input[type=range]::-moz-range-thumb {
       height: 20px;
       width: 20px;
       border-radius: 50%;
       background: #3b82f6;
       cursor: pointer;
-      border: none;
+      margin-top: -7px;
       box-shadow: 0 2px 4px rgba(0,0,0,0.4);
     }
+    
+    /* Ventana emergente bonita */
+    .modal-oculto { display: none; }
+    .modal-visible { display: flex; }
   </style>
 </head>
 <body class="bg-gray-50 text-gray-800 font-sans pb-10">
 
-  <div class="max-w-md mx-auto p-4 space-y-6 mt-4">
+  <div class="max-w-md mx-auto p-4 space-y-6 mt-4 relative">
     
-    <!-- CABECERA CON EL CERDITO -->
+    <!-- CABECERA -->
     <div class="flex items-center justify-between mb-2">
       <div class="flex items-center gap-3">
         <img src="cerdito.png" alt="Cerdito" class="w-12 h-12 rounded-full bg-white p-1 shadow-sm object-cover">
         <h1 class="text-xl font-bold text-gray-800">PresuFácil</h1>
       </div>
-      <button class="text-gray-500 hover:text-gray-700 text-sm flex items-center gap-1" onclick="location.reload()">
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
-        Reiniciar
+      <!-- Botón para empezar un mes nuevo a cero -->
+      <button onclick="empezarMesNuevo()" class="text-red-500 hover:text-red-700 text-sm flex items-center gap-1 font-semibold bg-red-50 px-2 py-1 rounded-lg">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+        Nuevo Mes
       </button>
     </div>
 
@@ -103,7 +86,6 @@
         </div>
         <div>
           <h3 class="font-bold text-gray-800 text-sm">Nómina / Ingresos</h3>
-          <p class="text-xs text-gray-400">Tu dinero principal del mes</p>
         </div>
       </div>
       <div class="flex items-center bg-gray-50 border rounded-lg p-2">
@@ -121,47 +103,58 @@
           </div>
           <div>
             <h3 class="font-bold text-gray-800 text-sm">Gastos Fijos</h3>
-            <p class="text-xs text-gray-400">Recibos domiciliados</p>
           </div>
         </div>
-        <button onclick="añadirGastoFijo()" class="bg-blue-600 text-white w-8 h-8 rounded-full font-bold flex items-center justify-center shadow-sm hover:bg-blue-700">+</button>
+        <button onclick="abrirVentanaGasto()" class="bg-blue-600 text-white w-8 h-8 rounded-full font-bold flex items-center justify-center shadow-sm hover:bg-blue-700">+</button>
       </div>
 
       <div class="space-y-5" id="lista-gastos-fijos">
         <!-- Hipoteca/Alquiler -->
         <div class="space-y-2 border-b pb-4 border-gray-50">
-          <div class="flex justify-between text-sm font-semibold text-gray-700">
+          <div class="flex justify-between text-sm font-semibold text-gray-700 items-center">
             <span>Alquiler/Hipoteca</span>
-            <span class="text-gray-500" id="texto-gasto-1">550 €</span>
+            <div class="flex items-center gap-1 bg-gray-100 px-2 py-1 rounded-md">
+              <input type="number" id="caja-gasto-1" value="550" class="w-16 bg-transparent text-right outline-none text-gray-600 font-bold" oninput="sincronizarBarra('1')">
+              <span class="text-gray-400">€</span>
+            </div>
           </div>
-          <input type="range" class="gasto-slider" id="gasto-1" min="0" max="1500" value="550" oninput="actualizarTextoSlider(this, 'texto-gasto-1'); recalcularTotal()">
+          <input type="range" class="gasto-slider" id="gasto-1" min="0" max="1500" value="550" oninput="sincronizarCaja('1')">
         </div>
 
         <!-- Luz -->
         <div class="space-y-2 border-b pb-4 border-gray-50">
-          <div class="flex justify-between text-sm font-semibold text-gray-700">
+          <div class="flex justify-between text-sm font-semibold text-gray-700 items-center">
             <span>Recibo de la Luz</span>
-            <span class="text-gray-500" id="texto-gasto-2">85 €</span>
+            <div class="flex items-center gap-1 bg-gray-100 px-2 py-1 rounded-md">
+              <input type="number" id="caja-gasto-2" value="85" class="w-16 bg-transparent text-right outline-none text-gray-600 font-bold" oninput="sincronizarBarra('2')">
+              <span class="text-gray-400">€</span>
+            </div>
           </div>
-          <input type="range" class="gasto-slider" id="gasto-2" min="0" max="300" value="85" oninput="actualizarTextoSlider(this, 'texto-gasto-2'); recalcularTotal()">
+          <input type="range" class="gasto-slider" id="gasto-2" min="0" max="1500" value="85" oninput="sincronizarCaja('2')">
         </div>
 
         <!-- Agua -->
         <div class="space-y-2 border-b pb-4 border-gray-50">
-          <div class="flex justify-between text-sm font-semibold text-gray-700">
+          <div class="flex justify-between text-sm font-semibold text-gray-700 items-center">
             <span>Agua y Basura</span>
-            <span class="text-gray-500" id="texto-gasto-3">35 €</span>
+            <div class="flex items-center gap-1 bg-gray-100 px-2 py-1 rounded-md">
+              <input type="number" id="caja-gasto-3" value="35" class="w-16 bg-transparent text-right outline-none text-gray-600 font-bold" oninput="sincronizarBarra('3')">
+              <span class="text-gray-400">€</span>
+            </div>
           </div>
-          <input type="range" class="gasto-slider" id="gasto-3" min="0" max="150" value="35" oninput="actualizarTextoSlider(this, 'texto-gasto-3'); recalcularTotal()">
+          <input type="range" class="gasto-slider" id="gasto-3" min="0" max="1500" value="35" oninput="sincronizarCaja('3')">
         </div>
 
         <!-- Internet -->
         <div class="space-y-2">
-          <div class="flex justify-between text-sm font-semibold text-gray-700">
+          <div class="flex justify-between text-sm font-semibold text-gray-700 items-center">
             <span>Internet y Móvil</span>
-            <span class="text-gray-500" id="texto-gasto-4">45 €</span>
+            <div class="flex items-center gap-1 bg-gray-100 px-2 py-1 rounded-md">
+              <input type="number" id="caja-gasto-4" value="45" class="w-16 bg-transparent text-right outline-none text-gray-600 font-bold" oninput="sincronizarBarra('4')">
+              <span class="text-gray-400">€</span>
+            </div>
           </div>
-          <input type="range" class="gasto-slider" id="gasto-4" min="0" max="150" value="45" oninput="actualizarTextoSlider(this, 'texto-gasto-4'); recalcularTotal()">
+          <input type="range" class="gasto-slider" id="gasto-4" min="0" max="1500" value="45" oninput="sincronizarCaja('4')">
         </div>
       </div>
     </div>
@@ -185,7 +178,7 @@
             <span class="w-6 h-4 bg-blue-800 rounded text-[8px] text-white flex items-center justify-center font-bold italic">VISA</span>
             Visa Classic *0303
           </span>
-          <span class="font-bold text-red-500" id="gasto-visa">0,00 €</span>
+          <span class="font-bold text-red-500 text-lg" id="gasto-visa">0,00 €</span>
         </div>
         
         <button id="btn-foto" class="w-full bg-blue-600 text-white font-semibold py-3 rounded-lg shadow-sm hover:bg-blue-700 flex justify-center items-center gap-2 transition-colors">
@@ -198,7 +191,23 @@
 
   </div>
 
- <!-- SCRIPT DEFINITIVO CON MEMORIA Y ANTI-DUPLICADOS -->
+  <!-- VENTANA EMERGENTE PARA AÑADIR NUEVO GASTO -->
+  <div id="ventana-nuevo-gasto" class="modal-oculto fixed inset-0 bg-black bg-opacity-50 z-50 items-center justify-center p-4">
+    <div class="bg-white rounded-2xl w-full max-w-sm p-6 shadow-xl relative">
+      <h3 class="text-lg font-bold text-gray-800 mb-4">Añadir Nuevo Gasto Fijo</h3>
+      <p class="text-sm text-gray-500 mb-4">Escribe el nombre del recibo o concepto que quieres añadir a tu lista mensual.</p>
+      
+      <input type="text" id="input-nombre-gasto" placeholder="Ejemplo: Netflix, Gimnasio..." class="w-full border border-gray-300 rounded-lg p-3 text-gray-700 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 mb-6">
+      
+      <div class="flex gap-3 justify-end">
+        <button onclick="cerrarVentanaGasto()" class="px-4 py-2 text-gray-500 font-semibold hover:bg-gray-100 rounded-lg">Cancelar</button>
+        <button onclick="confirmarNuevoGasto()" class="px-4 py-2 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 shadow-sm">Añadir</button>
+      </div>
+    </div>
+  </div>
+
+
+ <!-- SCRIPT PRINCIPAL -->
   <script>
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('sw.js');
@@ -250,9 +259,6 @@
         }
 
         if (listaGastos.length > 0) {
-          // --- INICIO DEL SISTEMA ANTI-DUPLICADOS ---
-          
-          // 1. Abrimos la memoria del móvil para ver qué gastos y dinero teníamos ya guardados
           let historialGuardado = JSON.parse(localStorage.getItem('historial_visa_0303')) || [];
           let saldoAcumulado = Number(localStorage.getItem('saldo_visa_0303')) || 0;
 
@@ -263,16 +269,13 @@
           
           listaGastos.forEach(gasto => {
             let importeLimpio = String(gasto.importe).replace(',', '.');
-            let importeNumero = Math.abs(Number(importeLimpio) || 0); // Convertimos siempre a positivo
+            let importeNumero = Math.abs(Number(importeLimpio) || 0); 
             
-            // 2. Creamos la Etiqueta Única (Fecha + Nombre + Precio)
             let idGasto = `${gasto.fecha} - ${gasto.comercio} - ${importeNumero}`;
 
-            // 3. Comprobamos si esa etiqueta ya existe en la memoria
             if (historialGuardado.includes(idGasto)) {
-              gastosIgnorados++; // Si existe, lo ignoramos
+              gastosIgnorados++; 
             } else {
-              // Si es nuevo, lo guardamos en la memoria y lo sumamos
               historialGuardado.push(idGasto);
               totalNuevos += importeNumero;
               gastosAceptados++;
@@ -280,19 +283,15 @@
             }
           });
 
-          // 4. Sumamos lo nuevo al total que ya teníamos de días anteriores
           saldoAcumulado += totalNuevos;
 
-          // 5. Guardamos todo actualizado en la memoria del móvil
           localStorage.setItem('historial_visa_0303', JSON.stringify(historialGuardado));
           localStorage.setItem('saldo_visa_0303', saldoAcumulado);
 
-          // 6. Actualizamos los textos en la pantalla
           textoGastoVisa.innerText = saldoAcumulado.toFixed(2) + " €";
           textoGastoVisa.dataset.valor = saldoAcumulado;
           recalcularTotal();
           
-          // Resumen para ti
           mensaje += `\nResumen: ${gastosAceptados} nuevos añadidos, ${gastosIgnorados} repetidos ignorados.\n`;
           mensaje += `Total restado a tu nómina hoy: ${totalNuevos.toFixed(2)} €`;
           alert(mensaje);
@@ -311,26 +310,65 @@
       }
     });
 
-    // --- FUNCIONES MATEMÁTICAS ---
+    // --- COMPRESOR DE IMAGEN PARA QUE VAYA RÁPIDO ---
     function convertirABase64(file) {
       return new Promise((resolve, reject) => {
         const reader = new FileReader();
         reader.readAsDataURL(file);
-        reader.onload = () => resolve(reader.result.split(',')[1]);
+        reader.onload = (evento) => {
+          const img = new Image();
+          img.src = evento.target.result;
+          img.onload = () => {
+            const canvas = document.createElement('canvas');
+            let width = img.width;
+            let height = img.height;
+            const MAX_WIDTH = 800; 
+
+            if (width > MAX_WIDTH) {
+              height = Math.round((height * MAX_WIDTH) / width);
+              width = MAX_WIDTH;
+            }
+
+            canvas.width = width;
+            canvas.height = height;
+
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, width, height);
+            
+            const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
+            resolve(dataUrl.split(',')[1]);
+          };
+        };
         reader.onerror = error => reject(error);
       });
     }
 
-    function actualizarTextoSlider(sliderElement, textoId) {
-      document.getElementById(textoId).innerText = sliderElement.value + " €";
+    // --- SINCRONIZACIÓN CAJAS DE TEXTO Y BARRAS ---
+    function sincronizarCaja(idGasto) {
+      // Si muevo la barra, actualizo el texto
+      let barra = document.getElementById('gasto-' + idGasto);
+      let caja = document.getElementById('caja-gasto-' + idGasto);
+      caja.value = barra.value;
+      recalcularTotal();
+    }
+
+    function sincronizarBarra(idGasto) {
+      // Si escribo un número exacto en la caja, actualizo la barra
+      let barra = document.getElementById('gasto-' + idGasto);
+      let caja = document.getElementById('caja-gasto-' + idGasto);
+      
+      // Si el usuario escribe un número mayor a 1500, le dejamos pero la barra se queda al máximo
+      barra.value = caja.value; 
+      recalcularTotal();
     }
 
     function recalcularTotal() {
       let nominaValor = Number(document.getElementById('nomina').value) || 0;
       
-      let barras = document.querySelectorAll('.gasto-slider');
+      // Cogemos el valor de las cajas de texto en vez de las barras para ser precisos al céntimo
+      let cajas = document.querySelectorAll('input[id^="caja-gasto-"]');
       let fijosValor = 0;
-      barras.forEach(barra => { fijosValor += Number(barra.value); });
+      cajas.forEach(caja => { fijosValor += Number(caja.value); });
 
       let tarjetaValor = Number(textoGastoVisa.dataset.valor) || 0;
 
@@ -342,37 +380,68 @@
       document.getElementById('saldo-total').innerText = saldo.toFixed(2) + " €";
     }
 
+    // --- VENTANA EMERGENTE PARA NUEVOS GASTOS ---
+    const ventanaModal = document.getElementById('ventana-nuevo-gasto');
+    const inputNuevoNombre = document.getElementById('input-nombre-gasto');
     let contadorNuevosGastos = 5;
-    function añadirGastoFijo() {
-      let nombre = prompt("¿Cómo se llama el nuevo gasto fijo? (Ej: Netflix)");
-      if (!nombre) return; 
+
+    function abrirVentanaGasto() {
+      inputNuevoNombre.value = ''; // Limpiamos el texto
+      ventanaModal.classList.replace('modal-oculto', 'modal-visible');
+    }
+
+    function cerrarVentanaGasto() {
+      ventanaModal.classList.replace('modal-visible', 'modal-oculto');
+    }
+
+    function confirmarNuevoGasto() {
+      let nombre = inputNuevoNombre.value.trim();
+      if (!nombre) {
+        alert("Por favor, escribe un nombre para el gasto.");
+        return; 
+      }
 
       let lista = document.getElementById('lista-gastos-fijos');
-      let idTexto = 'texto-gasto-' + contadorNuevosGastos;
+      let idTexto = contadorNuevosGastos;
       
       let nuevoHtml = `
         <div class="space-y-2 border-b pb-4 border-gray-50">
-          <div class="flex justify-between text-sm font-semibold text-gray-700">
+          <div class="flex justify-between text-sm font-semibold text-gray-700 items-center">
             <span>${nombre}</span>
-            <span class="text-gray-500" id="${idTexto}">0 €</span>
+            <div class="flex items-center gap-1 bg-gray-100 px-2 py-1 rounded-md">
+              <input type="number" id="caja-gasto-${idTexto}" value="0" class="w-16 bg-transparent text-right outline-none text-gray-600 font-bold" oninput="sincronizarBarra('${idTexto}')">
+              <span class="text-gray-400">€</span>
+            </div>
           </div>
-          <input type="range" class="gasto-slider" min="0" max="300" value="0" oninput="actualizarTextoSlider(this, '${idTexto}'); recalcularTotal()">
+          <input type="range" class="gasto-slider" id="gasto-${idTexto}" min="0" max="1500" value="0" oninput="sincronizarCaja('${idTexto}')">
         </div>
       `;
+      
       lista.insertAdjacentHTML('beforeend', nuevoHtml);
       contadorNuevosGastos++;
+      cerrarVentanaGasto();
+    }
+
+    // --- FUNCIÓN DE NUEVO MES (BORRAR MEMORIA) ---
+    function empezarMesNuevo() {
+      if(confirm("¿Estás seguro de que quieres borrar el dinero de la tarjeta y empezar el mes a cero? (Los gastos fijos no se borrarán).")) {
+        localStorage.removeItem('historial_visa_0303');
+        localStorage.removeItem('saldo_visa_0303');
+        
+        textoGastoVisa.innerText = "0.00 €";
+        textoGastoVisa.dataset.valor = 0;
+        recalcularTotal();
+        alert("¡Mes reiniciado! Tarjeta a cero.");
+      }
     }
 
     // AL ARRANCAR LA APLICACIÓN:
     window.onload = () => {
-      // Cargamos el saldo de la tarjeta desde la memoria del móvil (por si cerramos la app ayer)
       let saldoGuardado = Number(localStorage.getItem('saldo_visa_0303')) || 0;
       textoGastoVisa.innerText = saldoGuardado.toFixed(2) + " €";
       textoGastoVisa.dataset.valor = saldoGuardado;
-      
       recalcularTotal();
     };
   </script>
 </body>
 </html>
- 

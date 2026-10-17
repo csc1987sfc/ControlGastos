@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <!-- Esto hace que se vea perfecta en la pantalla del móvil -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Control de Gastos</title>
+  
+  <!-- Aquí conectamos el instalador que creaste en el Paso 2 -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#10B981">
+  
+  <!-- Sistema de diseño rápido para que quede bonita -->
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 text-gray-800 font-sans pb-10">
+
+  <!-- BARRA SUPERIOR VERDE CON EL CERDITO -->
+  <header class="bg-emerald-500 text-white p-4 shadow-md flex items-center gap-3">
+    <img src="cerdito.png" alt="Cerdito" class="w-12 h-12 rounded-full bg-white p-1 shadow-sm">
+    <h1 class="text-2xl font-bold">Mis Gastos</h1>
+  </header>
+
+  <!-- CONTENIDO CENTRAL -->
+  <main class="p-4 space-y-6">
+    
+    <!-- 1. SALDO DISPONIBLE -->
+    <div class="bg-white rounded-xl shadow-md p-6 text-center border-t-4 border-emerald-500">
+      <h2 class="text-gray-500 font-semibold uppercase text-sm">Saldo Disponible Mes</h2>
+      <p class="text-4xl font-bold text-gray-800 mt-2" id="saldo-total">0,00 €</p>
+    </div>
+
+    <!-- 2. NÓMINA Y GASTOS FIJOS (Manuales) -->
+    <div class="bg-white rounded-xl shadow-md p-5 space-y-4">
+      <h3 class="font-bold text-lg border-b pb-2">Ingresos y Gastos Fijos</h3>
+      
+      <div class="flex justify-between items-center">
+        <span class="text-gray-600">💰 Nómina (Manual)</span>
+        <input type="number" id="nomina" placeholder="Ej: 1800" class="w-24 border rounded p-1 text-right bg-gray-50">
+      </div>
+      
+      <div class="flex justify-between items-center">
+        <span class="text-gray-600">💡 Luz / Agua</span>
+        <input type="number" id="luz-agua" placeholder="Ej: 100" class="w-24 border rounded p-1 text-right bg-gray-50">
+      </div>
+      
+      <div class="flex justify-between items-center">
+        <span class="text-gray-600">🏋️ Gimnasio</span>
+        <input type="number" id="gimnasio" placeholder="Ej: 35" class="w-24 border rounded p-1 text-right bg-gray-50">
+      </div>
+    </div>
+
+    <!-- 3. TARJETAS Y BOTÓN DE FOTO -->
+    <div class="bg-white rounded-xl shadow-md p-5 space-y-4">
+      <h3 class="font-bold text-lg border-b pb-2">Tarjetas de Crédito</h3>
+      
+      <div class="flex justify-between items-center text-red-500 font-semibold">
+        <span>💳 Visa Classic *0303</span>
+        <span id="gasto-tarjeta1">0,00 €</span>
+      </div>
+
+      <!-- BOTÓN PARA SUBIR LA CAPTURA -->
+      <button class="w-full bg-blue-600 text-white font-bold py-3 rounded-lg mt-4 shadow hover:bg-blue-700 flex justify-center items-center gap-2">
+        <span>📸 Subir Captura de Tarjeta</span>
+        <input type="file" id="foto-tarjeta" accept="image/*" class="hidden">
+      </button>
+    </div>
+
+  </main>
+
+  <!-- SCRIPT PARA REGISTRAR LA APP -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('sw.js')
+        .then(() => console.log('Instalador de App listo.'));
+    }
+    
+    // Aquí pondremos el código que hace que el botón de la foto funcione
+    document.querySelector('button').addEventListener('click', function() {
+      document.getElementById('foto-tarjeta').click();
+    });
+  </script>
+
+</body>
+</html>

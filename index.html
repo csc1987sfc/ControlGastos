@@ -141,7 +141,6 @@
           </div>
         </div>
         
-        <!-- LISTA HISTORIAL TARJETA NUEVA -->
         <div id="lista-movimientos-visa" class="mt-4 border-t border-gray-200 pt-3 space-y-2">
           <!-- Renderizado por JS -->
         </div>
@@ -191,7 +190,15 @@
       await cargarDesdeNube();
     };
 
-    // --- NUEVO: FUNCIÓN PARA PONER ICONOS AUTOMÁTICOS ---
+    // --- NUEVA SEGURIDAD: FILTRO ANTI-INYECCIÓN XSS ---
+    // Esta función coge cualquier texto de la nube y lo limpia. Si alguien intenta colar código (ej: <script>), 
+    // el navegador lo dibujará como texto inofensivo y no lo ejecutará jamás.
+    function textoSeguro(texto) {
+      const div = document.createElement('div');
+      div.textContent = texto;
+      return div.innerHTML;
+    }
+
     function obtenerIcono(nombre) {
       const n = nombre.toLowerCase();
       if (n.includes('mercadona') || n.includes('carrefour') || n.includes('aldi') || n.includes('lidl') || n.includes('cash') || n.includes('super')) return '🛒';
@@ -266,9 +273,12 @@
       contenedorFijos.innerHTML = ''; 
       
       estadoApp.gastos_fijos.forEach(gasto => {
+        // Pasamos el nombre por la aduana de seguridad antes de dibujarlo
+        const nombreProtegido = textoSeguro(gasto.nombre);
+        
         let html = `
         <div class="flex justify-between items-center border-b pb-3 border-gray-100 pt-2">
-          <span class="text-sm font-semibold text-gray-700 truncate flex-1 pr-2">${obtenerIcono(gasto.nombre)} ${gasto.nombre}</span>
+          <span class="text-sm font-semibold text-gray-700 truncate flex-1 pr-2">${obtenerIcono(gasto.nombre)} ${nombreProtegido}</span>
           <div class="flex items-center gap-2">
             <div class="flex items-center gap-1 bg-gray-100 px-2 py-1.5 rounded-lg border border-gray-200 shadow-inner">
               <input type="number" id="caja-gasto-${gasto.id}" value="${gasto.valor}" 
@@ -285,18 +295,20 @@
         contenedorFijos.insertAdjacentHTML('beforeend', html);
       });
 
-      // --- NUEVO: PINTAR LISTA DE TARJETA ---
       const listaVisa = document.getElementById('lista-movimientos-visa');
       if (estadoApp.historial_visa && estadoApp.historial_visa.length > 0) {
         listaVisa.innerHTML = '<h4 class="text-[10px] font-bold text-gray-400 uppercase mb-2 tracking-wider">Últimos Tickets Guardados</h4>';
         estadoApp.historial_visa.forEach(idGasto => {
-           // Recordamos que el ID es "14/10-mercadonaduquesa-36.95"
            const partes = idGasto.split('-');
            if (partes.length === 3) {
               const icono = obtenerIcono(partes[1]);
+              // Pasamos el texto del ticket por la aduana de seguridad
+              const comercioProtegido = textoSeguro(partes[1].toUpperCase());
+              const fechaProtegida = textoSeguro(partes[0]);
+              
               listaVisa.innerHTML += `
                 <div class="flex justify-between items-center text-xs py-1.5 border-b border-gray-100 last:border-0">
-                  <span class="text-gray-600 font-medium truncate pr-2">${icono} ${partes[0]} - ${partes[1].toUpperCase()}</span>
+                  <span class="text-gray-600 font-medium truncate pr-2">${icono} ${fechaProtegida} - ${comercioProtegido}</span>
                   <span class="font-bold text-red-500 whitespace-nowrap">-${partes[2]} €</span>
                 </div>`;
            }
@@ -346,16 +358,15 @@
        let saldo = nominaValor - fijosValor - estadoApp.saldo_visa;
        document.getElementById('saldo-total').innerText = saldo.toFixed(2) + " €";
 
-       // --- NUEVO: SEMÁFORO DE SALDO ---
        let tarjeta = document.getElementById('tarjeta-saldo');
        tarjeta.classList.remove('bg-emerald-500', 'bg-orange-500', 'bg-red-500');
 
        if (saldo < 300) {
-           tarjeta.classList.add('bg-red-500'); // ROJO
+           tarjeta.classList.add('bg-red-500'); 
        } else if (saldo < 500) {
-           tarjeta.classList.add('bg-orange-500'); // NARANJA
+           tarjeta.classList.add('bg-orange-500'); 
        } else {
-           tarjeta.classList.add('bg-emerald-500'); // VERDE
+           tarjeta.classList.add('bg-emerald-500'); 
        }
     }
 
@@ -387,7 +398,6 @@
       dibujarInterfaz();
     }
 
-    // --- NUEVO: CIERRE DE MES POR WHATSAPP ---
     function empezarMesNuevo() {
       if(confirm("¿Seguro que quieres cerrar el mes y borrar todo el historial de la tarjeta?")) {
         
@@ -497,7 +507,6 @@
               estadoApp.historial_visa.push(idGastoInterno);
               totalNuevos += importeNumero;
               gastosAceptados++;
-              // Aplicamos icono en el resumen emergente
               mensaje += `✅ Nuevo: ${obtenerIcono(gasto.comercio)} ${gasto.fecha} | ${gasto.comercio} | ${importeNumero.toFixed(2)} €\n`;
             }
           });

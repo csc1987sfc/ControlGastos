@@ -10,32 +10,18 @@
   <script src="https://cdn.tailwindcss.com"></script>
   
   <style>
-    /* Estilos para las barras deslizantes */
-    input[type=range] {
-      -webkit-appearance: none;
-      width: 100%;
-      background: transparent;
-      margin: 10px 0;
-    }
-    input[type=range]::-webkit-slider-runnable-track {
-      width: 100%;
-      height: 6px;
-      cursor: pointer;
-      background: #e5e7eb;
-      border-radius: 4px;
-    }
-    input[type=range]::-webkit-slider-thumb {
-      -webkit-appearance: none;
-      height: 20px;
-      width: 20px;
-      border-radius: 50%;
-      background: #3b82f6;
-      cursor: pointer;
-      margin-top: -7px;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.4);
-    }
     .modal-oculto { display: none; }
     .modal-visible { display: flex; }
+    
+    /* Quitamos las flechitas de los números */
+    input[type=number]::-webkit-inner-spin-button, 
+    input[type=number]::-webkit-outer-spin-button { 
+      -webkit-appearance: none; 
+      margin: 0; 
+    }
+    input[type=number] {
+      -moz-appearance: textfield;
+    }
   </style>
 </head>
 <body class="bg-gray-50 text-gray-800 font-sans pb-10">
@@ -86,9 +72,9 @@
           <h3 class="font-bold text-gray-800 text-sm">Nómina / Ingresos</h3>
         </div>
       </div>
-      <div class="flex items-center bg-gray-50 border rounded-lg p-2">
-        <span class="text-gray-400 pl-2 pr-1">€</span>
-        <input type="number" id="nomina" value="0" class="w-full bg-transparent outline-none font-bold text-gray-700" 
+      <div class="flex items-center bg-gray-50 border border-gray-200 rounded-lg p-2">
+        <span class="text-gray-400 pl-2 pr-1 font-bold">€</span>
+        <input type="number" id="nomina" value="0" class="w-full bg-transparent outline-none font-bold text-gray-800 text-lg" 
                oninput="recalcularTotal()" onchange="guardarNomina(this.value)">
       </div>
     </div>
@@ -108,7 +94,7 @@
       </div>
 
       <!-- Aquí se pintarán los gastos que vienen de Supabase -->
-      <div class="space-y-5" id="lista-gastos-fijos">
+      <div class="space-y-3" id="lista-gastos-fijos">
         <div class="text-center text-sm text-gray-400 py-4">⏳ Conectando con la nube...</div>
       </div>
     </div>
@@ -169,7 +155,6 @@
     const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVycGpubWJoaGJ6ZWlya3RwemN2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk2NDU3NDQsImV4cCI6MjA5NTIyMTc0NH0.-DFxwerywoeoiOPzErn2PVCCosTKjuUMIVBBdXQ_RNE";
     // --------------------------------------------------
 
-    // "estadoApp" es el cerebro de tu app. Guarda todo y viaja por internet.
     let estadoApp = {
       nomina: 1800,
       saldo_visa: 0,
@@ -183,12 +168,10 @@
       contador_fijos: 5
     };
 
-    // AL ARRANCAR LA APLICACIÓN
     window.onload = async () => {
       await cargarDesdeNube();
     };
 
-    // 1. DESCARGAR DATOS DE SUPABASE
     async function cargarDesdeNube() {
       try {
         const url = `${SUPABASE_URL}/rest/v1/memoria_app?id=eq.1`;
@@ -210,7 +193,7 @@
              estadoApp.gastos_fijos = nube.gastos_fijos;
              estadoApp.contador_fijos = nube.contador_fijos || 5;
            } else {
-             guardarEnNube(); // Si es la primera vez, sube los gastos fijos por defecto
+             guardarEnNube(); 
            }
         }
         dibujarInterfaz();
@@ -221,7 +204,6 @@
       }
     }
 
-    // 2. SUBIR DATOS A SUPABASE
     async function guardarEnNube() {
       try {
         document.getElementById('estado-nube').innerText = "🔄 Sincronizando...";
@@ -241,7 +223,6 @@
       }
     }
 
-    // 3. PINTAR LA PANTALLA CON LOS DATOS DE LA NUBE
     function dibujarInterfaz() {
       document.getElementById('nomina').value = estadoApp.nomina;
       document.getElementById('gasto-visa').innerText = estadoApp.saldo_visa.toFixed(2) + " €";
@@ -251,34 +232,24 @@
       
       estadoApp.gastos_fijos.forEach(gasto => {
         let html = `
-        <div class="space-y-2 border-b pb-4 border-gray-50">
-          <div class="flex justify-between text-sm font-semibold text-gray-700 items-center">
-            <span>${gasto.nombre}</span>
-            <div class="flex items-center gap-1 bg-gray-100 px-2 py-1 rounded-md">
-              <input type="number" id="caja-gasto-${gasto.id}" value="${gasto.valor}" class="w-16 bg-transparent text-right outline-none text-gray-600 font-bold" 
-                     oninput="moverBarra('${gasto.id}', this.value)" 
+        <div class="flex justify-between items-center border-b pb-3 border-gray-100 pt-2">
+          <span class="text-sm font-semibold text-gray-700 truncate flex-1 pr-2">${gasto.nombre}</span>
+          <div class="flex items-center gap-2">
+            <div class="flex items-center gap-1 bg-gray-100 px-2 py-1.5 rounded-lg border border-gray-200 shadow-inner">
+              <input type="number" id="caja-gasto-${gasto.id}" value="${gasto.valor}" 
+                     class="w-14 bg-transparent text-right outline-none text-gray-800 font-bold text-base" 
+                     oninput="recalcularTotal()" 
                      onchange="guardarGasto('${gasto.id}', this.value)">
-              <span class="text-gray-400">€</span>
+              <span class="text-gray-400 font-bold text-sm">€</span>
             </div>
+            <button onclick="borrarGasto('${gasto.id}')" class="text-red-300 hover:text-red-500 bg-red-50 rounded-md p-1.5 transition-colors shadow-sm">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+            </button>
           </div>
-          <input type="range" class="gasto-slider" id="gasto-${gasto.id}" min="0" max="1500" value="${gasto.valor}" 
-                 oninput="moverCaja('${gasto.id}', this.value)"
-                 onchange="guardarGasto('${gasto.id}', this.value)">
         </div>`;
         contenedorFijos.insertAdjacentHTML('beforeend', html);
       });
       
-      recalcularTotal();
-    }
-
-    // 4. FUNCIONES DE LAS BARRAS Y CAJAS
-    function moverBarra(id, valor) {
-      document.getElementById('gasto-' + id).value = valor;
-      recalcularTotal();
-    }
-
-    function moverCaja(id, valor) {
-      document.getElementById('caja-gasto-' + id).value = valor;
       recalcularTotal();
     }
 
@@ -287,6 +258,16 @@
       if (gasto) {
         gasto.valor = Number(valor);
         guardarEnNube();
+      }
+    }
+
+    // NUEVA FUNCIÓN PARA BORRAR UN GASTO
+    function borrarGasto(id) {
+      if (confirm("¿Estás seguro de que quieres borrar este gasto? Esta acción no se puede deshacer.")) {
+        // Filtramos la lista para quedarnos con todos menos el que queremos borrar
+        estadoApp.gastos_fijos = estadoApp.gastos_fijos.filter(g => g.id !== id);
+        guardarEnNube(); // Lo borramos de la nube
+        dibujarInterfaz(); // Refrescamos la pantalla
       }
     }
 
@@ -313,7 +294,6 @@
        document.getElementById('saldo-total').innerText = saldo.toFixed(2) + " €";
     }
 
-    // 5. FUNCIONES PARA AÑADIR GASTOS Y NUEVO MES
     const ventanaModal = document.getElementById('ventana-nuevo-gasto');
     const inputNuevoNombre = document.getElementById('input-nombre-gasto');
 
@@ -352,7 +332,6 @@
       }
     }
 
-    // 6. CÁMARA E INTELIGENCIA ARTIFICIAL (GEMINI)
     const btnFoto = document.getElementById('btn-foto');
     const inputFoto = document.getElementById('input-foto');
     
@@ -409,7 +388,7 @@
 
           if (gastosAceptados > 0) {
             estadoApp.saldo_visa += totalNuevos;
-            guardarEnNube(); // Subimos el nuevo gasto a Supabase
+            guardarEnNube(); 
             dibujarInterfaz();
           }
           
@@ -428,7 +407,6 @@
       }
     });
 
-    // COMPRESOR DE IMAGEN DE ALTO RENDIMIENTO
     function convertirABase64(file) {
       return new Promise((resolve, reject) => {
         const reader = new FileReader();

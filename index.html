@@ -133,7 +133,6 @@
           <div class="flex gap-2">
             <input type="text" id="manual-comercio" placeholder="Lugar (Ej: Mercadona)" class="flex-1 border border-gray-300 rounded-lg p-2.5 text-sm outline-none focus:border-blue-500 shadow-sm">
             <div class="flex items-center gap-1 bg-white border border-gray-300 rounded-lg px-2 w-28 shadow-sm">
-              <!-- MEJORA 1: step="0.01" para el teclado móvil decimal -->
               <input type="number" id="manual-precio" step="0.01" placeholder="0" class="w-full bg-transparent text-right outline-none text-gray-700 text-sm font-bold">
               <span class="text-gray-400 text-xs font-bold pr-1">€</span>
             </div>
@@ -154,7 +153,7 @@
       </div>
     </div>
 
-    <!-- MEJORA 3: HISTORIAL DE MESES -->
+    <!-- HISTORIAL DE MESES -->
     <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
       <div class="flex items-center gap-3 mb-4">
         <div class="bg-purple-100 text-purple-600 p-2 rounded-lg">
@@ -190,15 +189,15 @@
     }
 
     // --- ¡PON AQUÍ TUS DATOS PÚBLICOS DE SUPABASE! ---
-    const SUPABASE_URL = "https://urpjnmbhhbzeirktpzcv.supabase.co";
-    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVycGpubWJoaGJ6ZWlya3RwemN2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk2NDU3NDQsImV4cCI6MjA5NTIyMTc0NH0.-DFxwerywoeoiOPzErn2PVCCosTKjuUMIVBBdXQ_RNE";
+    const SUPABASE_URL = "https://PEGA_AQUI_LA_URL.supabase.co";
+    const SUPABASE_ANON_KEY = "PEGA_AQUI_LA_CLAVE_LARGA";
     // --------------------------------------------------
 
     let estadoApp = {
       nomina: 1800,
       saldo_visa: 0,
       historial_visa: [],
-      historial_meses: [], // NUEVO: Memoria para meses pasados
+      historial_meses: [], 
       gastos_fijos: [
         { id: "1", nombre: "Alquiler/Hipoteca", valor: 550 },
         { id: "2", nombre: "Recibo de la Luz", valor: 85 },
@@ -253,7 +252,7 @@
            estadoApp.nomina = nube.nomina !== undefined ? nube.nomina : estadoApp.nomina;
            estadoApp.saldo_visa = nube.saldo_visa !== undefined ? nube.saldo_visa : estadoApp.saldo_visa;
            estadoApp.historial_visa = nube.historial_visa || estadoApp.historial_visa;
-           estadoApp.historial_meses = nube.historial_meses || estadoApp.historial_meses; // Cargamos historial de meses
+           estadoApp.historial_meses = nube.historial_meses || estadoApp.historial_meses; 
            
            if (nube.gastos_fijos) {
              estadoApp.gastos_fijos = nube.gastos_fijos;
@@ -322,7 +321,6 @@
       if (estadoApp.historial_visa && estadoApp.historial_visa.length > 0) {
         listaVisa.innerHTML = '<h4 class="text-[10px] font-bold text-gray-400 uppercase mb-2 tracking-wider">Últimos Tickets Guardados</h4>';
         estadoApp.historial_visa.forEach(idGasto => {
-           // MEJORA 2: Parche para leer tickets antiguos con guión (-) y los nuevos con barra (|)
            let p_fecha, p_comercio, p_precio;
            if (idGasto.includes('|')) {
                const partes = idGasto.split('|');
@@ -330,8 +328,8 @@
            } else {
                const partes = idGasto.split('-');
                p_fecha = partes[0];
-               p_precio = partes[partes.length - 1]; // El precio siempre es el último
-               p_comercio = partes.slice(1, partes.length - 1).join('-'); // Recomponemos el nombre si tenía guiones
+               p_precio = partes[partes.length - 1]; 
+               p_comercio = partes.slice(1, partes.length - 1).join('-'); 
            }
 
            if (p_precio !== undefined) {
@@ -355,21 +353,25 @@
         listaVisa.innerHTML = '<p class="text-xs text-gray-400 text-center py-2 italic">Aún no hay tickets este mes</p>';
       }
 
-      // Renderizamos el Historial de Meses Pasados
       const listaMeses = document.getElementById('lista-meses-pasados');
       if (estadoApp.historial_meses && estadoApp.historial_meses.length > 0) {
         listaMeses.innerHTML = '';
-        // Le damos la vuelta a la lista para ver el mes más reciente arriba
-        [...estadoApp.historial_meses].reverse().forEach(mes => {
+        [...estadoApp.historial_meses].reverse().forEach((mes, indiceReverso) => {
+          // Calculamos el índice real (original) para poder borrarlo correctamente
+          const indiceOriginal = estadoApp.historial_meses.length - 1 - indiceReverso;
           listaMeses.innerHTML += `
-            <div class="flex justify-between items-center bg-gray-50/50 p-3 rounded-xl border border-gray-100">
-              <div>
+            <div class="flex items-center bg-gray-50/50 p-3 rounded-xl border border-gray-100 group">
+              <div class="flex-1">
                 <p class="text-xs font-bold text-gray-700">${mes.fecha}</p>
                 <p class="text-xs mt-0.5">Sobrante: <span class="font-bold text-emerald-600">${mes.sobrante}</span></p>
               </div>
-              <div class="text-right text-[10px] text-gray-400 leading-tight">
+              <div class="text-right text-[10px] text-gray-400 leading-tight mr-3">
                 Ingreso: ${mes.ingresos}<br>Fijos: -${mes.fijos}<br>Visa: -${mes.tarjetas}
               </div>
+              <!-- BOTÓN PAPELERA PARA EL MES -->
+              <button onclick="borrarMesGuardado(${indiceOriginal})" class="text-red-300 hover:text-red-500 bg-red-50 rounded-md p-1.5 transition-colors shadow-sm" title="Borrar mes">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+              </button>
             </div>`;
         });
       } else {
@@ -379,9 +381,20 @@
       recalcularTotal();
     }
 
+    // --- NUEVO: FUNCIÓN PARA BORRAR UN MES DEL HISTORIAL ---
+    function borrarMesGuardado(indice) {
+      if (confirm("¿Estás seguro de que quieres borrar este mes del historial? (Solo se borra el resumen visual, no afecta a tu dinero real actual).")) {
+        // Quitamos el mes seleccionado de la lista
+        estadoApp.historial_meses.splice(indice, 1);
+        
+        // Guardamos en la nube y actualizamos la interfaz
+        guardarEnNube();
+        dibujarInterfaz();
+      }
+    }
+
     function borrarTicketVisa(idGasto) {
       if (confirm("¿Seguro que quieres borrar este ticket? El dinero se devolverá a tu saldo disponible.")) {
-        // Leemos el precio con el mismo parche de compatibilidad
         let precioGasto = 0;
         if (idGasto.includes('|')) {
            precioGasto = Number(idGasto.split('|')[2]);
@@ -478,7 +491,6 @@
       dibujarInterfaz();
     }
 
-    // --- NUEVO: GUARDAR HISTORIAL INTERNO AL CERRAR EL MES ---
     function empezarMesNuevo() {
       if(confirm("¿Seguro que quieres cerrar el periodo y borrar todo el historial de la tarjeta?")) {
         
@@ -489,7 +501,6 @@
         
         let fechaCierre = new Date().toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' });
 
-        // 1. Guardamos el resumen en la memoria de la aplicación
         estadoApp.historial_meses.push({
           fecha: fechaCierre,
           ingresos: totalIngreso,
@@ -498,7 +509,6 @@
           sobrante: saldoRestante
         });
 
-        // 2. Preparamos el WhatsApp
         let textoWhatsApp = `📊 *CIERRE DE CUENTAS - PRESUFÁCIL*\n📅 Fecha: ${fechaCierre}\n\n💰 Ingresos: ${totalIngreso}\n🏠 Gastos Fijos: ${totalFijos}\n💳 Tarjeta: ${totalTarjetas}\n------------------------\n✅ *SALDO SOBRANTE: ${saldoRestante}*\n\n¡Periodo cerrado y reseteado! 🐷`;
         let urlWhatsApp = `https://api.whatsapp.com/send?text=${encodeURIComponent(textoWhatsApp)}`;
 
@@ -506,7 +516,6 @@
           window.open(urlWhatsApp, '_blank');
         }
 
-        // 3. Reseteamos la tarjeta
         estadoApp.saldo_visa = 0;
         estadoApp.historial_visa = []; 
         guardarEnNube();
@@ -530,7 +539,6 @@
       const fechaFormateada = `${partesFecha[2]}/${partesFecha[1]}`;
 
       const comercioDNI = comercio.replace(/\s+/g, '').toLowerCase();
-      // USAMOS LA BARRA VERTICAL (|) COMO NUEVO SEPARADOR
       const idGastoInterno = `${fechaFormateada}|${comercioDNI}|${precio}`;
 
       if (estadoApp.historial_visa.includes(idGastoInterno)) {
@@ -594,7 +602,6 @@
             
             const fechaDNI = String(gasto.fecha).trim();
             const comercioDNI = String(gasto.comercio).replace(/\s+/g, '').toLowerCase();
-            // USAMOS LA BARRA VERTICAL (|) COMO NUEVO SEPARADOR
             const idGastoInterno = `${fechaDNI}|${comercioDNI}|${importeNumero}`;
 
             if (estadoApp.historial_visa.includes(idGastoInterno)) {

@@ -190,9 +190,6 @@
       await cargarDesdeNube();
     };
 
-    // --- NUEVA SEGURIDAD: FILTRO ANTI-INYECCIÓN XSS ---
-    // Esta función coge cualquier texto de la nube y lo limpia. Si alguien intenta colar código (ej: <script>), 
-    // el navegador lo dibujará como texto inofensivo y no lo ejecutará jamás.
     function textoSeguro(texto) {
       const div = document.createElement('div');
       div.textContent = texto;
@@ -273,7 +270,6 @@
       contenedorFijos.innerHTML = ''; 
       
       estadoApp.gastos_fijos.forEach(gasto => {
-        // Pasamos el nombre por la aduana de seguridad antes de dibujarlo
         const nombreProtegido = textoSeguro(gasto.nombre);
         
         let html = `
@@ -302,14 +298,19 @@
            const partes = idGasto.split('-');
            if (partes.length === 3) {
               const icono = obtenerIcono(partes[1]);
-              // Pasamos el texto del ticket por la aduana de seguridad
               const comercioProtegido = textoSeguro(partes[1].toUpperCase());
               const fechaProtegida = textoSeguro(partes[0]);
               
+              // AÑADIDO: Botón de papelera para borrar el ticket individual de la Visa
               listaVisa.innerHTML += `
-                <div class="flex justify-between items-center text-xs py-1.5 border-b border-gray-100 last:border-0">
-                  <span class="text-gray-600 font-medium truncate pr-2">${icono} ${fechaProtegida} - ${comercioProtegido}</span>
-                  <span class="font-bold text-red-500 whitespace-nowrap">-${partes[2]} €</span>
+                <div class="flex justify-between items-center text-xs py-1.5 border-b border-gray-100 last:border-0 group">
+                  <span class="text-gray-600 font-medium truncate pr-2 flex-1">${icono} ${fechaProtegida} - ${comercioProtegido}</span>
+                  <div class="flex items-center gap-1.5">
+                    <span class="font-bold text-red-500 whitespace-nowrap">-${partes[2]} €</span>
+                    <button onclick="borrarTicketVisa('${idGasto}')" class="text-gray-300 hover:text-red-500 transition-colors p-1" title="Borrar ticket">
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                    </button>
+                  </div>
                 </div>`;
            }
         });
@@ -318,6 +319,27 @@
       }
       
       recalcularTotal();
+    }
+
+    // --- NUEVO: FUNCIÓN PARA BORRAR UN TICKET INDIVIDUAL DE LA VISA ---
+    function borrarTicketVisa(idGasto) {
+      if (confirm("¿Seguro que quieres borrar este ticket? El dinero se devolverá a tu saldo disponible.")) {
+        const partes = idGasto.split('-');
+        if (partes.length === 3) {
+          const importeABorrar = Number(partes[2]);
+          
+          // 1. Restamos el importe del contador total de la visa (con toFixed para evitar decimales infinitos)
+          estadoApp.saldo_visa = Number((estadoApp.saldo_visa - importeABorrar).toFixed(2));
+          if (estadoApp.saldo_visa < 0) estadoApp.saldo_visa = 0; // Por seguridad, nunca menor a 0
+          
+          // 2. Quitamos el ID del ticket de la lista del historial
+          estadoApp.historial_visa = estadoApp.historial_visa.filter(id => id !== idGasto);
+          
+          // 3. Guardamos los cambios en la base de datos y repintamos todo
+          guardarEnNube();
+          dibujarInterfaz();
+        }
+      }
     }
 
     function guardarGasto(id, valor) {

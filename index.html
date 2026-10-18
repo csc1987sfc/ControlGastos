@@ -107,11 +107,11 @@
         </div>
         <div>
           <h3 class="font-bold text-gray-800 text-sm">Gastos con Tarjeta</h3>
-          <p class="text-xs text-gray-400">Sube la captura de tu banco</p>
+          <p class="text-xs text-gray-400">Sube foto o añádelo a mano</p>
         </div>
       </div>
 
-      <div class="bg-gray-50 border rounded-xl p-4 mt-2">
+      <div class="bg-gray-50 border rounded-xl p-4 mt-2 shadow-inner">
         <div class="flex justify-between items-center mb-3">
           <span class="font-bold text-gray-700 text-sm flex items-center gap-2">
             <span class="w-6 h-4 bg-blue-800 rounded text-[8px] text-white flex items-center justify-center font-bold italic">VISA</span>
@@ -120,17 +120,44 @@
           <span class="font-bold text-red-500 text-lg" id="gasto-visa">0,00 €</span>
         </div>
         
+        <!-- BOTÓN INTELIGENCIA ARTIFICIAL -->
         <button id="btn-foto" class="w-full bg-blue-600 text-white font-semibold py-3 rounded-lg shadow-sm hover:bg-blue-700 flex justify-center items-center gap-2 transition-colors">
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
           Subir Captura de Tarjeta
         </button>
         <input type="file" id="input-foto" accept="image/*" class="hidden">
+
+        <!-- LÍNEA DIVISORIA -->
+        <div class="relative flex py-4 items-center">
+          <div class="flex-grow border-t border-gray-200"></div>
+          <span class="flex-shrink-0 mx-4 text-gray-400 text-[10px] font-bold uppercase tracking-wider">O añade a mano</span>
+          <div class="flex-grow border-t border-gray-200"></div>
+        </div>
+
+        <!-- FORMULARIO MANUAL -->
+        <div class="flex flex-col gap-3">
+          <div class="flex gap-2">
+            <input type="text" id="manual-comercio" placeholder="Lugar (Ej: Mercadona)" class="flex-1 border border-gray-300 rounded-lg p-2.5 text-sm outline-none focus:border-blue-500 shadow-sm">
+            <div class="flex items-center gap-1 bg-white border border-gray-300 rounded-lg px-2 w-28 shadow-sm">
+              <input type="number" id="manual-precio" placeholder="0" class="w-full bg-transparent text-right outline-none text-gray-700 text-sm font-bold">
+              <span class="text-gray-400 text-xs font-bold pr-1">€</span>
+            </div>
+          </div>
+          <div class="flex gap-2">
+            <input type="date" id="manual-fecha" class="border border-gray-300 rounded-lg p-2.5 text-sm outline-none focus:border-blue-500 text-gray-600 w-36 shadow-sm">
+            <button onclick="añadirGastoManual()" class="flex-1 bg-gray-800 text-white font-semibold rounded-lg text-sm hover:bg-gray-900 transition-colors shadow-sm flex items-center justify-center gap-1">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+              Añadir
+            </button>
+          </div>
+        </div>
+        
       </div>
     </div>
 
   </div>
 
-  <!-- VENTANA EMERGENTE PARA AÑADIR NUEVO GASTO -->
+  <!-- VENTANA EMERGENTE PARA AÑADIR NUEVO GASTO FIJO -->
   <div id="ventana-nuevo-gasto" class="modal-oculto fixed inset-0 bg-black bg-opacity-50 z-50 items-center justify-center p-4">
     <div class="bg-white rounded-2xl w-full max-w-sm p-6 shadow-xl relative">
       <h3 class="text-lg font-bold text-gray-800 mb-4">Añadir Nuevo Gasto Fijo</h3>
@@ -169,6 +196,8 @@
     };
 
     window.onload = async () => {
+      // Ponemos la fecha de hoy por defecto en el formulario manual
+      document.getElementById('manual-fecha').valueAsDate = new Date();
       await cargarDesdeNube();
     };
 
@@ -261,13 +290,11 @@
       }
     }
 
-    // NUEVA FUNCIÓN PARA BORRAR UN GASTO
     function borrarGasto(id) {
       if (confirm("¿Estás seguro de que quieres borrar este gasto? Esta acción no se puede deshacer.")) {
-        // Filtramos la lista para quedarnos con todos menos el que queremos borrar
         estadoApp.gastos_fijos = estadoApp.gastos_fijos.filter(g => g.id !== id);
-        guardarEnNube(); // Lo borramos de la nube
-        dibujarInterfaz(); // Refrescamos la pantalla
+        guardarEnNube(); 
+        dibujarInterfaz(); 
       }
     }
 
@@ -332,6 +359,43 @@
       }
     }
 
+    // --- NUEVO: FUNCIÓN PARA AÑADIR GASTO A MANO ---
+    function añadirGastoManual() {
+      const comercio = document.getElementById('manual-comercio').value.trim();
+      let precioString = document.getElementById('manual-precio').value.replace(',', '.');
+      const precio = Math.abs(Number(precioString) || 0);
+      const fechaInput = document.getElementById('manual-fecha').value; // Formato YYYY-MM-DD
+
+      if (!comercio || precio === 0 || !fechaInput) {
+        alert("Por favor, rellena el lugar, el precio y la fecha correcta.");
+        return;
+      }
+
+      // Convertir la fecha de HTML (2026-10-18) a formato Gemini (18/10)
+      const partesFecha = fechaInput.split('-');
+      const fechaFormateada = `${partesFecha[2]}/${partesFecha[1]}`;
+
+      // Etiqueta única para la trampa anti-duplicados
+      const idGasto = `${fechaFormateada} - ${comercio} - ${precio}`;
+
+      if (estadoApp.historial_visa.includes(idGasto)) {
+        alert(`⚠️ ¡Cuidado! El gasto de ${precio}€ en ${comercio} del día ${fechaFormateada} ya estaba guardado en la memoria (es un duplicado).`);
+      } else {
+        estadoApp.historial_visa.push(idGasto);
+        estadoApp.saldo_visa += precio;
+        
+        guardarEnNube();
+        dibujarInterfaz();
+        
+        // Limpiamos las casillas para el siguiente
+        document.getElementById('manual-comercio').value = '';
+        document.getElementById('manual-precio').value = '';
+        
+        alert(`✅ Gasto de ${precio}€ en ${comercio} guardado en la nube con éxito.`);
+      }
+    }
+
+    // --- INTELIGENCIA ARTIFICIAL DE CÁMARA ---
     const btnFoto = document.getElementById('btn-foto');
     const inputFoto = document.getElementById('input-foto');
     

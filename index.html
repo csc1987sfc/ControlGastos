@@ -38,21 +38,22 @@
       </button>
     </div>
 
-    <div class="bg-emerald-500 text-white rounded-2xl p-6 shadow-lg">
-      <h2 class="text-emerald-100 font-semibold text-xs uppercase tracking-wider mb-1">Dinero Real Disponible</h2>
+    <!-- TARJETA DINÁMICA (SEMÁFORO) -->
+    <div id="tarjeta-saldo" class="bg-emerald-500 text-white rounded-2xl p-6 shadow-lg transition-colors duration-500">
+      <h2 class="text-white/90 font-semibold text-xs uppercase tracking-wider mb-1">Dinero Real Disponible</h2>
       <p class="text-4xl font-extrabold mb-6" id="saldo-total">0,00 €</p>
       
-      <div class="flex justify-between text-sm text-emerald-50 border-t border-emerald-400/50 pt-3">
+      <div class="flex justify-between text-sm text-white/90 border-t border-white/20 pt-3">
         <div>
-          <p class="text-xs text-emerald-200">INGRESO (+)</p>
+          <p class="text-xs text-white/70">INGRESO (+)</p>
           <p class="font-bold" id="total-ingreso">0,00 €</p>
         </div>
         <div>
-          <p class="text-xs text-emerald-200">FIJOS (-)</p>
+          <p class="text-xs text-white/70">FIJOS (-)</p>
           <p class="font-bold" id="total-fijos">0,00 €</p>
         </div>
         <div>
-          <p class="text-xs text-emerald-200">TARJETAS (-)</p>
+          <p class="text-xs text-white/70">TARJETAS (-)</p>
           <p class="font-bold" id="total-tarjetas">0,00 €</p>
         </div>
       </div>
@@ -140,6 +141,11 @@
           </div>
         </div>
         
+        <!-- LISTA HISTORIAL TARJETA NUEVA -->
+        <div id="lista-movimientos-visa" class="mt-4 border-t border-gray-200 pt-3 space-y-2">
+          <!-- Renderizado por JS -->
+        </div>
+
       </div>
     </div>
 
@@ -148,7 +154,6 @@
   <div id="ventana-nuevo-gasto" class="modal-oculto fixed inset-0 bg-black bg-opacity-50 z-50 items-center justify-center p-4">
     <div class="bg-white rounded-2xl w-full max-w-sm p-6 shadow-xl relative">
       <h3 class="text-lg font-bold text-gray-800 mb-4">Añadir Nuevo Gasto Fijo</h3>
-      <p class="text-sm text-gray-500 mb-4">Escribe el nombre del recibo o concepto que quieres sincronizar en todos los móviles.</p>
       <input type="text" id="input-nombre-gasto" placeholder="Ejemplo: Netflix, Gimnasio..." class="w-full border border-gray-300 rounded-lg p-3 text-gray-700 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 mb-6">
       <div class="flex gap-3 justify-end">
         <button onclick="cerrarVentanaGasto()" class="px-4 py-2 text-gray-500 font-semibold hover:bg-gray-100 rounded-lg">Cancelar</button>
@@ -185,6 +190,22 @@
       document.getElementById('manual-fecha').valueAsDate = new Date();
       await cargarDesdeNube();
     };
+
+    // --- NUEVO: FUNCIÓN PARA PONER ICONOS AUTOMÁTICOS ---
+    function obtenerIcono(nombre) {
+      const n = nombre.toLowerCase();
+      if (n.includes('mercadona') || n.includes('carrefour') || n.includes('aldi') || n.includes('lidl') || n.includes('cash') || n.includes('super')) return '🛒';
+      if (n.includes('repsol') || n.includes('cepsa') || n.includes('gasolina') || n.includes('glp') || n.includes('bp') || n.includes('shell')) return '⛽';
+      if (n.includes('farmacia') || n.includes('salud') || n.includes('medico')) return '💊';
+      if (n.includes('luz') || n.includes('endesa') || n.includes('iberdrola') || n.includes('energia')) return '💡';
+      if (n.includes('agua') || n.includes('emasesa')) return '💧';
+      if (n.includes('internet') || n.includes('movil') || n.includes('vodafone') || n.includes('orange') || n.includes('movistar') || n.includes('digi')) return '📱';
+      if (n.includes('coche') || n.includes('seguro') || n.includes('taller') || n.includes('dacia') || n.includes('jogger')) return '🚗';
+      if (n.includes('netflix') || n.includes('spotify') || n.includes('cine') || n.includes('prime')) return '🍿';
+      if (n.includes('amazon') || n.includes('aliexpress') || n.includes('compra')) return '📦';
+      if (n.includes('hipoteca') || n.includes('alquiler') || n.includes('casa')) return '🏠';
+      return '🧾';
+    }
 
     async function cargarDesdeNube() {
       try {
@@ -247,7 +268,7 @@
       estadoApp.gastos_fijos.forEach(gasto => {
         let html = `
         <div class="flex justify-between items-center border-b pb-3 border-gray-100 pt-2">
-          <span class="text-sm font-semibold text-gray-700 truncate flex-1 pr-2">${gasto.nombre}</span>
+          <span class="text-sm font-semibold text-gray-700 truncate flex-1 pr-2">${obtenerIcono(gasto.nombre)} ${gasto.nombre}</span>
           <div class="flex items-center gap-2">
             <div class="flex items-center gap-1 bg-gray-100 px-2 py-1.5 rounded-lg border border-gray-200 shadow-inner">
               <input type="number" id="caja-gasto-${gasto.id}" value="${gasto.valor}" 
@@ -263,6 +284,26 @@
         </div>`;
         contenedorFijos.insertAdjacentHTML('beforeend', html);
       });
+
+      // --- NUEVO: PINTAR LISTA DE TARJETA ---
+      const listaVisa = document.getElementById('lista-movimientos-visa');
+      if (estadoApp.historial_visa && estadoApp.historial_visa.length > 0) {
+        listaVisa.innerHTML = '<h4 class="text-[10px] font-bold text-gray-400 uppercase mb-2 tracking-wider">Últimos Tickets Guardados</h4>';
+        estadoApp.historial_visa.forEach(idGasto => {
+           // Recordamos que el ID es "14/10-mercadonaduquesa-36.95"
+           const partes = idGasto.split('-');
+           if (partes.length === 3) {
+              const icono = obtenerIcono(partes[1]);
+              listaVisa.innerHTML += `
+                <div class="flex justify-between items-center text-xs py-1.5 border-b border-gray-100 last:border-0">
+                  <span class="text-gray-600 font-medium truncate pr-2">${icono} ${partes[0]} - ${partes[1].toUpperCase()}</span>
+                  <span class="font-bold text-red-500 whitespace-nowrap">-${partes[2]} €</span>
+                </div>`;
+           }
+        });
+      } else {
+        listaVisa.innerHTML = '<p class="text-xs text-gray-400 text-center py-2 italic">Aún no hay tickets este mes</p>';
+      }
       
       recalcularTotal();
     }
@@ -304,6 +345,18 @@
 
        let saldo = nominaValor - fijosValor - estadoApp.saldo_visa;
        document.getElementById('saldo-total').innerText = saldo.toFixed(2) + " €";
+
+       // --- NUEVO: SEMÁFORO DE SALDO ---
+       let tarjeta = document.getElementById('tarjeta-saldo');
+       tarjeta.classList.remove('bg-emerald-500', 'bg-orange-500', 'bg-red-500');
+
+       if (saldo < 300) {
+           tarjeta.classList.add('bg-red-500'); // ROJO
+       } else if (saldo < 500) {
+           tarjeta.classList.add('bg-orange-500'); // NARANJA
+       } else {
+           tarjeta.classList.add('bg-emerald-500'); // VERDE
+       }
     }
 
     const ventanaModal = document.getElementById('ventana-nuevo-gasto');
@@ -334,17 +387,30 @@
       dibujarInterfaz();
     }
 
+    // --- NUEVO: CIERRE DE MES POR WHATSAPP ---
     function empezarMesNuevo() {
-      if(confirm("¿Seguro que quieres borrar el dinero de la tarjeta para todos los móviles y empezar el mes a cero?")) {
+      if(confirm("¿Seguro que quieres cerrar el mes y borrar todo el historial de la tarjeta?")) {
+        
+        let totalIngreso = document.getElementById('nomina').value;
+        let totalFijos = document.getElementById('total-fijos').innerText;
+        let totalTarjetas = document.getElementById('total-tarjetas').innerText;
+        let saldoRestante = document.getElementById('saldo-total').innerText;
+
+        let textoWhatsApp = `📊 *CIERRE DE MES - PRESUFÁCIL*\n\n💰 Ingresos: ${totalIngreso} €\n🏠 Gastos Fijos: ${totalFijos}\n💳 Tarjeta: ${totalTarjetas}\n------------------------\n✅ *SALDO SOBRANTE: ${saldoRestante}*\n\n¡Mes cerrado y reseteado! 🐷`;
+        let urlWhatsApp = `https://api.whatsapp.com/send?text=${encodeURIComponent(textoWhatsApp)}`;
+
+        if(confirm("¿Quieres enviar el resumen del mes por WhatsApp antes de borrarlo todo?")) {
+          window.open(urlWhatsApp, '_blank');
+        }
+
         estadoApp.saldo_visa = 0;
-        estadoApp.historial_visa = []; // Al hacer nuevo mes, se borra el historial y puedes volver a meter tickets
+        estadoApp.historial_visa = []; 
         guardarEnNube();
         dibujarInterfaz();
-        alert("¡Mes reiniciado en la nube!");
+        alert("¡Historial borrado. Mes reiniciado en la nube!");
       }
     }
 
-    // --- FUNCIÓN MANUAL (CON NORMALIZACIÓN ANTIMAYÚSCULAS/ESPACIOS) ---
     function añadirGastoManual() {
       const comercio = document.getElementById('manual-comercio').value.trim();
       let precioString = document.getElementById('manual-precio').value.replace(',', '.');
@@ -359,7 +425,6 @@
       const partesFecha = fechaInput.split('-');
       const fechaFormateada = `${partesFecha[2]}/${partesFecha[1]}`;
 
-      // AQUÍ ESTÁ LA MAGIA: Quitamos todos los espacios y lo pasamos a minúsculas para el "DNI" interno del ticket
       const comercioDNI = comercio.replace(/\s+/g, '').toLowerCase();
       const idGastoInterno = `${fechaFormateada}-${comercioDNI}-${precio}`;
 
@@ -379,7 +444,6 @@
       }
     }
 
-    // --- INTELIGENCIA ARTIFICIAL (CON NORMALIZACIÓN ANTIMAYÚSCULAS/ESPACIOS) ---
     const btnFoto = document.getElementById('btn-foto');
     const inputFoto = document.getElementById('input-foto');
     
@@ -423,7 +487,6 @@
             let importeLimpio = String(gasto.importe).replace(',', '.');
             let importeNumero = Math.abs(Number(importeLimpio) || 0); 
             
-            // LA MAGIA DE NUEVO: Limpiamos la fecha y el comercio igual que lo hicimos a mano
             const fechaDNI = String(gasto.fecha).trim();
             const comercioDNI = String(gasto.comercio).replace(/\s+/g, '').toLowerCase();
             const idGastoInterno = `${fechaDNI}-${comercioDNI}-${importeNumero}`;
@@ -434,7 +497,8 @@
               estadoApp.historial_visa.push(idGastoInterno);
               totalNuevos += importeNumero;
               gastosAceptados++;
-              mensaje += `✅ Nuevo: ${gasto.fecha} | ${gasto.comercio} | ${importeNumero.toFixed(2)} €\n`;
+              // Aplicamos icono en el resumen emergente
+              mensaje += `✅ Nuevo: ${obtenerIcono(gasto.comercio)} ${gasto.fecha} | ${gasto.comercio} | ${importeNumero.toFixed(2)} €\n`;
             }
           });
 

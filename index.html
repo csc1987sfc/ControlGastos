@@ -34,21 +34,8 @@
           <h1 class="text-xl font-bold text-gray-800 flex items-center gap-1">
             PresuFácil <span id="estado-nube" class="text-[10px] text-green-500 ml-1 mt-1">☁️ Sincronizado</span>
           </h1>
-          <!-- NUEVO: Selector de meses -->
-          <select id="selector-mes" onchange="cambiarMes(this.value)" class="text-sm font-bold text-blue-600 bg-transparent outline-none cursor-pointer hover:text-blue-800 transition-colors mt-0.5 border-none p-0">
-            <option value="Enero">Enero</option>
-            <option value="Febrero">Febrero</option>
-            <option value="Marzo">Marzo</option>
-            <option value="Abril">Abril</option>
-            <option value="Mayo">Mayo</option>
-            <option value="Junio">Junio</option>
-            <option value="Julio">Julio</option>
-            <option value="Agosto">Agosto</option>
-            <option value="Septiembre">Septiembre</option>
-            <option value="Octubre">Octubre</option>
-            <option value="Noviembre">Noviembre</option>
-            <option value="Diciembre">Diciembre</option>
-          </select>
+          <!-- NUEVO: Fecha automática del sistema -->
+          <span id="fecha-hoy" class="text-[10px] font-bold text-blue-600 uppercase tracking-wide mt-0.5"></span>
         </div>
       </div>
       <button onclick="empezarMesNuevo()" class="text-red-500 hover:text-red-700 text-sm flex items-center gap-1 font-semibold bg-red-50 px-2 py-1 rounded-lg shadow-sm">
@@ -191,13 +178,9 @@
     const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVycGpubWJoaGJ6ZWlya3RwemN2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk2NDU3NDQsImV4cCI6MjA5NTIyMTc0NH0.-DFxwerywoeoiOPzErn2PVCCosTKjuUMIVBBdXQ_RNE";
     // --------------------------------------------------
 
-    const nombresMeses = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
-    let mesPorDefecto = nombresMeses[new Date().getMonth()];
-
     let estadoApp = {
       nomina: 1800,
       saldo_visa: 0,
-      mes_actual: mesPorDefecto,
       historial_visa: [],
       gastos_fijos: [
         { id: "1", nombre: "Alquiler/Hipoteca", valor: 550 },
@@ -209,15 +192,15 @@
     };
 
     window.onload = async () => {
+      // 1. Ponemos la fecha del input manual a hoy
       document.getElementById('manual-fecha').valueAsDate = new Date();
+      
+      // 2. NUEVO: Calculamos y mostramos la fecha real del móvil en la cabecera
+      const fechaHoyFormateada = new Date().toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' });
+      document.getElementById('fecha-hoy').innerText = fechaHoyFormateada; 
+      
       await cargarDesdeNube();
     };
-
-    // --- NUEVO: FUNCIÓN PARA CAMBIAR Y GUARDAR EL MES ---
-    function cambiarMes(nuevoMes) {
-      estadoApp.mes_actual = nuevoMes;
-      guardarEnNube();
-    }
 
     function textoSeguro(texto) {
       const div = document.createElement('div');
@@ -255,7 +238,6 @@
            let nube = data[0].contenido;
            estadoApp.nomina = nube.nomina !== undefined ? nube.nomina : estadoApp.nomina;
            estadoApp.saldo_visa = nube.saldo_visa !== undefined ? nube.saldo_visa : estadoApp.saldo_visa;
-           estadoApp.mes_actual = nube.mes_actual || estadoApp.mes_actual;
            estadoApp.historial_visa = nube.historial_visa || estadoApp.historial_visa;
            
            if (nube.gastos_fijos) {
@@ -295,9 +277,6 @@
     function dibujarInterfaz() {
       document.getElementById('nomina').value = estadoApp.nomina;
       document.getElementById('gasto-visa').innerText = estadoApp.saldo_visa.toFixed(2) + " €";
-      
-      // Asegurarnos de que el selector muestre el mes que tenemos en la memoria
-      document.getElementById('selector-mes').value = estadoApp.mes_actual;
       
       const contenedorFijos = document.getElementById('lista-gastos-fijos');
       contenedorFijos.innerHTML = ''; 
@@ -447,22 +426,22 @@
       dibujarInterfaz();
     }
 
-    // --- NUEVO: CIERRE DE MES AUTOMATIZADO CON EL MES SELECCIONADO ---
+    // --- NUEVO: CIERRE DE MES AUTOMÁTICO BASADO EN EL DÍA REAL ---
     function empezarMesNuevo() {
-      if(confirm("¿Seguro que quieres cerrar el mes y borrar todo el historial de la tarjeta?")) {
+      if(confirm("¿Seguro que quieres cerrar el periodo y borrar todo el historial de la tarjeta?")) {
         
         let totalIngreso = document.getElementById('nomina').value;
         let totalFijos = document.getElementById('total-fijos').innerText;
         let totalTarjetas = document.getElementById('total-tarjetas').innerText;
         let saldoRestante = document.getElementById('saldo-total').innerText;
         
-        // Cogemos el mes que hayamos seleccionado en el desplegable
-        let mesElegido = estadoApp.mes_actual.toUpperCase();
+        // Cogemos el día y mes exacto en el que el usuario le da al botón de cerrar
+        let fechaCierre = new Date().toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' });
 
-        let textoWhatsApp = `📊 *CIERRE DE ${mesElegido} - PRESUFÁCIL*\n\n💰 Ingresos: ${totalIngreso} €\n🏠 Gastos Fijos: ${totalFijos}\n💳 Tarjeta: ${totalTarjetas}\n------------------------\n✅ *SALDO SOBRANTE: ${saldoRestante}*\n\n¡Mes cerrado y reseteado! 🐷`;
+        let textoWhatsApp = `📊 *CIERRE DE CUENTAS - PRESUFÁCIL*\n📅 Fecha: ${fechaCierre}\n\n💰 Ingresos: ${totalIngreso} €\n🏠 Gastos Fijos: ${totalFijos}\n💳 Tarjeta: ${totalTarjetas}\n------------------------\n✅ *SALDO SOBRANTE: ${saldoRestante}*\n\n¡Periodo cerrado y reseteado! 🐷`;
         let urlWhatsApp = `https://api.whatsapp.com/send?text=${encodeURIComponent(textoWhatsApp)}`;
 
-        if(confirm("¿Quieres enviar el resumen del mes por WhatsApp antes de borrarlo todo?")) {
+        if(confirm("¿Quieres enviar el resumen de gastos por WhatsApp antes de borrarlo todo?")) {
           window.open(urlWhatsApp, '_blank');
         }
 
@@ -470,7 +449,7 @@
         estadoApp.historial_visa = []; 
         guardarEnNube();
         dibujarInterfaz();
-        alert("¡Historial borrado. Mes reiniciado en la nube!");
+        alert("¡Historial borrado. Periodo reiniciado en la nube!");
       }
     }
 

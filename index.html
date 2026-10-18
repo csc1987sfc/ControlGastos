@@ -30,11 +30,30 @@
     <div class="flex items-center justify-between mb-2">
       <div class="flex items-center gap-3">
         <img src="cerdito.png" alt="Cerdito" class="w-12 h-12 rounded-full bg-white p-1 shadow-sm object-cover">
-        <h1 class="text-xl font-bold text-gray-800">PresuFácil <span id="estado-nube" class="text-[10px] text-green-500 ml-1">☁️ Sincronizado</span></h1>
+        <div class="flex flex-col">
+          <h1 class="text-xl font-bold text-gray-800 flex items-center gap-1">
+            PresuFácil <span id="estado-nube" class="text-[10px] text-green-500 ml-1 mt-1">☁️ Sincronizado</span>
+          </h1>
+          <!-- NUEVO: Selector de meses -->
+          <select id="selector-mes" onchange="cambiarMes(this.value)" class="text-sm font-bold text-blue-600 bg-transparent outline-none cursor-pointer hover:text-blue-800 transition-colors mt-0.5 border-none p-0">
+            <option value="Enero">Enero</option>
+            <option value="Febrero">Febrero</option>
+            <option value="Marzo">Marzo</option>
+            <option value="Abril">Abril</option>
+            <option value="Mayo">Mayo</option>
+            <option value="Junio">Junio</option>
+            <option value="Julio">Julio</option>
+            <option value="Agosto">Agosto</option>
+            <option value="Septiembre">Septiembre</option>
+            <option value="Octubre">Octubre</option>
+            <option value="Noviembre">Noviembre</option>
+            <option value="Diciembre">Diciembre</option>
+          </select>
+        </div>
       </div>
-      <button onclick="empezarMesNuevo()" class="text-red-500 hover:text-red-700 text-sm flex items-center gap-1 font-semibold bg-red-50 px-2 py-1 rounded-lg">
+      <button onclick="empezarMesNuevo()" class="text-red-500 hover:text-red-700 text-sm flex items-center gap-1 font-semibold bg-red-50 px-2 py-1 rounded-lg shadow-sm">
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
-        Nuevo Mes
+        Cerrar Mes
       </button>
     </div>
 
@@ -172,9 +191,13 @@
     const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVycGpubWJoaGJ6ZWlya3RwemN2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk2NDU3NDQsImV4cCI6MjA5NTIyMTc0NH0.-DFxwerywoeoiOPzErn2PVCCosTKjuUMIVBBdXQ_RNE";
     // --------------------------------------------------
 
+    const nombresMeses = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+    let mesPorDefecto = nombresMeses[new Date().getMonth()];
+
     let estadoApp = {
       nomina: 1800,
       saldo_visa: 0,
+      mes_actual: mesPorDefecto,
       historial_visa: [],
       gastos_fijos: [
         { id: "1", nombre: "Alquiler/Hipoteca", valor: 550 },
@@ -189,6 +212,12 @@
       document.getElementById('manual-fecha').valueAsDate = new Date();
       await cargarDesdeNube();
     };
+
+    // --- NUEVO: FUNCIÓN PARA CAMBIAR Y GUARDAR EL MES ---
+    function cambiarMes(nuevoMes) {
+      estadoApp.mes_actual = nuevoMes;
+      guardarEnNube();
+    }
 
     function textoSeguro(texto) {
       const div = document.createElement('div');
@@ -226,6 +255,7 @@
            let nube = data[0].contenido;
            estadoApp.nomina = nube.nomina !== undefined ? nube.nomina : estadoApp.nomina;
            estadoApp.saldo_visa = nube.saldo_visa !== undefined ? nube.saldo_visa : estadoApp.saldo_visa;
+           estadoApp.mes_actual = nube.mes_actual || estadoApp.mes_actual;
            estadoApp.historial_visa = nube.historial_visa || estadoApp.historial_visa;
            
            if (nube.gastos_fijos) {
@@ -266,6 +296,9 @@
       document.getElementById('nomina').value = estadoApp.nomina;
       document.getElementById('gasto-visa').innerText = estadoApp.saldo_visa.toFixed(2) + " €";
       
+      // Asegurarnos de que el selector muestre el mes que tenemos en la memoria
+      document.getElementById('selector-mes').value = estadoApp.mes_actual;
+      
       const contenedorFijos = document.getElementById('lista-gastos-fijos');
       contenedorFijos.innerHTML = ''; 
       
@@ -301,7 +334,6 @@
               const comercioProtegido = textoSeguro(partes[1].toUpperCase());
               const fechaProtegida = textoSeguro(partes[0]);
               
-              // AÑADIDO: Botón de papelera para borrar el ticket individual de la Visa
               listaVisa.innerHTML += `
                 <div class="flex justify-between items-center text-xs py-1.5 border-b border-gray-100 last:border-0 group">
                   <span class="text-gray-600 font-medium truncate pr-2 flex-1">${icono} ${fechaProtegida} - ${comercioProtegido}</span>
@@ -321,21 +353,16 @@
       recalcularTotal();
     }
 
-    // --- NUEVO: FUNCIÓN PARA BORRAR UN TICKET INDIVIDUAL DE LA VISA ---
     function borrarTicketVisa(idGasto) {
       if (confirm("¿Seguro que quieres borrar este ticket? El dinero se devolverá a tu saldo disponible.")) {
         const partes = idGasto.split('-');
         if (partes.length === 3) {
           const importeABorrar = Number(partes[2]);
-          
-          // 1. Restamos el importe del contador total de la visa (con toFixed para evitar decimales infinitos)
           estadoApp.saldo_visa = Number((estadoApp.saldo_visa - importeABorrar).toFixed(2));
-          if (estadoApp.saldo_visa < 0) estadoApp.saldo_visa = 0; // Por seguridad, nunca menor a 0
+          if (estadoApp.saldo_visa < 0) estadoApp.saldo_visa = 0; 
           
-          // 2. Quitamos el ID del ticket de la lista del historial
           estadoApp.historial_visa = estadoApp.historial_visa.filter(id => id !== idGasto);
           
-          // 3. Guardamos los cambios en la base de datos y repintamos todo
           guardarEnNube();
           dibujarInterfaz();
         }
@@ -420,6 +447,7 @@
       dibujarInterfaz();
     }
 
+    // --- NUEVO: CIERRE DE MES AUTOMATIZADO CON EL MES SELECCIONADO ---
     function empezarMesNuevo() {
       if(confirm("¿Seguro que quieres cerrar el mes y borrar todo el historial de la tarjeta?")) {
         
@@ -427,8 +455,11 @@
         let totalFijos = document.getElementById('total-fijos').innerText;
         let totalTarjetas = document.getElementById('total-tarjetas').innerText;
         let saldoRestante = document.getElementById('saldo-total').innerText;
+        
+        // Cogemos el mes que hayamos seleccionado en el desplegable
+        let mesElegido = estadoApp.mes_actual.toUpperCase();
 
-        let textoWhatsApp = `📊 *CIERRE DE MES - PRESUFÁCIL*\n\n💰 Ingresos: ${totalIngreso} €\n🏠 Gastos Fijos: ${totalFijos}\n💳 Tarjeta: ${totalTarjetas}\n------------------------\n✅ *SALDO SOBRANTE: ${saldoRestante}*\n\n¡Mes cerrado y reseteado! 🐷`;
+        let textoWhatsApp = `📊 *CIERRE DE ${mesElegido} - PRESUFÁCIL*\n\n💰 Ingresos: ${totalIngreso} €\n🏠 Gastos Fijos: ${totalFijos}\n💳 Tarjeta: ${totalTarjetas}\n------------------------\n✅ *SALDO SOBRANTE: ${saldoRestante}*\n\n¡Mes cerrado y reseteado! 🐷`;
         let urlWhatsApp = `https://api.whatsapp.com/send?text=${encodeURIComponent(textoWhatsApp)}`;
 
         if(confirm("¿Quieres enviar el resumen del mes por WhatsApp antes de borrarlo todo?")) {

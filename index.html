@@ -43,7 +43,6 @@
       </button>
     </div>
 
-    <!-- TARJETA DINÁMICA (SEMÁFORO) -->
     <div id="tarjeta-saldo" class="bg-emerald-500 text-white rounded-2xl p-6 shadow-lg transition-colors duration-500">
       <h2 class="text-white/90 font-semibold text-xs uppercase tracking-wider mb-1">Dinero Real Disponible</h2>
       <p class="text-4xl font-extrabold mb-6" id="saldo-total">0,00 €</p>
@@ -138,11 +137,14 @@
             </div>
           </div>
           <div class="flex gap-2">
-            <input type="date" id="manual-fecha" class="border border-gray-300 rounded-lg p-2.5 text-sm outline-none focus:border-blue-500 text-gray-600 w-36 shadow-sm">
-            <button onclick="añadirGastoManual()" class="flex-1 bg-gray-800 text-white font-semibold rounded-lg text-sm hover:bg-gray-900 transition-colors shadow-sm flex items-center justify-center gap-1">
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+            <input type="date" id="manual-fecha" class="border border-gray-300 rounded-lg p-2.5 text-sm outline-none focus:border-blue-500 text-gray-600 flex-1 shadow-sm" title="Fecha del ticket">
+            <button onclick="añadirGastoManual()" class="bg-gray-800 text-white font-semibold rounded-lg text-sm hover:bg-gray-900 transition-colors shadow-sm flex items-center justify-center px-4">
               Añadir
             </button>
+          </div>
+          <div class="flex items-center gap-2 bg-white px-3 py-2 rounded-lg border border-gray-200 shadow-sm">
+             <span class="text-[11px] font-bold text-gray-500 uppercase tracking-wide w-full flex-1">¿Fecha cargo banco? (Opcional):</span>
+             <input type="date" id="manual-fecha-cargo" class="border-b border-gray-300 p-1 text-xs outline-none text-blue-600 focus:border-blue-500 bg-transparent w-32">
           </div>
         </div>
         
@@ -153,7 +155,6 @@
       </div>
     </div>
 
-    <!-- HISTORIAL DE MESES -->
     <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
       <div class="flex items-center gap-3 mb-4">
         <div class="bg-purple-100 text-purple-600 p-2 rounded-lg">
@@ -189,13 +190,13 @@
     }
 
     // --- ¡PON AQUÍ TUS DATOS PÚBLICOS DE SUPABASE! ---
-    const SUPABASE_URL = "https://urpjnmbhhbzeirktpzcv.supabase.co";
-    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVycGpubWJoaGJ6ZWlya3RwemN2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk2NDU3NDQsImV4cCI6MjA5NTIyMTc0NH0.-DFxwerywoeoiOPzErn2PVCCosTKjuUMIVBBdXQ_RNE";
+    const SUPABASE_URL = "https://PEGA_AQUI_LA_URL.supabase.co";
+    const SUPABASE_ANON_KEY = "PEGA_AQUI_LA_CLAVE_LARGA";
     // --------------------------------------------------
 
     let estadoApp = {
       nomina: 1800,
-      saldo_visa: 0,
+      saldo_visa: 0, 
       historial_visa: [],
       historial_meses: [], 
       gastos_fijos: [
@@ -250,7 +251,6 @@
         if (data && data.length > 0 && data[0].contenido) {
            let nube = data[0].contenido;
            estadoApp.nomina = nube.nomina !== undefined ? nube.nomina : estadoApp.nomina;
-           estadoApp.saldo_visa = nube.saldo_visa !== undefined ? nube.saldo_visa : estadoApp.saldo_visa;
            estadoApp.historial_visa = nube.historial_visa || estadoApp.historial_visa;
            estadoApp.historial_meses = nube.historial_meses || estadoApp.historial_meses; 
            
@@ -290,7 +290,6 @@
 
     function dibujarInterfaz() {
       document.getElementById('nomina').value = estadoApp.nomina;
-      document.getElementById('gasto-visa').innerText = estadoApp.saldo_visa.toFixed(2) + " €";
       
       const contenedorFijos = document.getElementById('lista-gastos-fijos');
       contenedorFijos.innerHTML = ''; 
@@ -319,12 +318,16 @@
 
       const listaVisa = document.getElementById('lista-movimientos-visa');
       if (estadoApp.historial_visa && estadoApp.historial_visa.length > 0) {
-        listaVisa.innerHTML = '<h4 class="text-[10px] font-bold text-gray-400 uppercase mb-2 tracking-wider">Últimos Tickets Guardados</h4>';
+        listaVisa.innerHTML = '<h4 class="text-[10px] font-bold text-gray-400 uppercase mb-2 tracking-wider">Últimos Tickets</h4>';
         estadoApp.historial_visa.forEach(idGasto => {
-           let p_fecha, p_comercio, p_precio;
+           let p_fecha, p_comercio, p_precio, p_fecha_cargo;
+           
            if (idGasto.includes('|')) {
                const partes = idGasto.split('|');
-               p_fecha = partes[0]; p_comercio = partes[1]; p_precio = partes[2];
+               p_fecha = partes[0]; 
+               p_comercio = partes[1]; 
+               p_precio = partes[2];
+               p_fecha_cargo = partes[3]; 
            } else {
                const partes = idGasto.split('-');
                p_fecha = partes[0];
@@ -337,16 +340,43 @@
               const comercioProtegido = textoSeguro(p_comercio.toUpperCase());
               const fechaProtegida = textoSeguro(p_fecha);
               
-              listaVisa.innerHTML += `
-                <div class="flex justify-between items-center text-xs py-1.5 border-b border-gray-100 last:border-0 group">
-                  <span class="text-gray-600 font-medium truncate pr-2 flex-1">${icono} ${fechaProtegida} - ${comercioProtegido}</span>
-                  <div class="flex items-center gap-1.5">
-                    <span class="font-bold text-red-500 whitespace-nowrap">-${p_precio} €</span>
-                    <button onclick="borrarTicketVisa('${idGasto}')" class="text-gray-300 hover:text-red-500 transition-colors p-1" title="Borrar ticket">
-                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
-                    </button>
-                  </div>
-                </div>`;
+              let esPendiente = false;
+              if (p_fecha_cargo) {
+                  let fParts = p_fecha_cargo.split('/');
+                  let fDate = new Date(new Date().getFullYear(), fParts[1]-1, fParts[0]);
+                  let hoy = new Date(); hoy.setHours(0,0,0,0);
+                  if (fDate > hoy) {
+                      esPendiente = true;
+                  }
+              }
+
+              if (esPendiente) {
+                  listaVisa.innerHTML += `
+                    <div class="flex justify-between items-center text-xs py-1.5 border-b border-orange-200 last:border-0 group bg-orange-50/50 px-2 rounded">
+                      <div class="flex flex-col flex-1 pr-2 overflow-hidden">
+                          <span class="text-gray-500 font-medium truncate">${icono} ${fechaProtegida} - ${comercioProtegido}</span>
+                          <span class="text-[9px] text-orange-600 font-bold tracking-wide mt-0.5">⏳ Se cargará el ${p_fecha_cargo}</span>
+                      </div>
+                      <div class="flex items-center gap-2">
+                        <span class="font-bold text-orange-400 whitespace-nowrap">-${p_precio} €</span>
+                        <button onclick="forzarCobro('${idGasto}')" class="text-emerald-500 bg-emerald-100 hover:bg-emerald-200 rounded px-1.5 py-0.5 transition-colors shadow-sm" title="Cobrar YA">✅</button>
+                        <button onclick="borrarTicketVisa('${idGasto}')" class="text-gray-300 hover:text-red-500 transition-colors p-1" title="Borrar">
+                          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                        </button>
+                      </div>
+                    </div>`;
+              } else {
+                  listaVisa.innerHTML += `
+                    <div class="flex justify-between items-center text-xs py-1.5 border-b border-gray-100 last:border-0 group px-1">
+                      <span class="text-gray-700 font-medium truncate pr-2 flex-1">${icono} ${fechaProtegida} - ${comercioProtegido}</span>
+                      <div class="flex items-center gap-1.5">
+                        <span class="font-bold text-red-500 whitespace-nowrap">-${p_precio} €</span>
+                        <button onclick="borrarTicketVisa('${idGasto}')" class="text-gray-300 hover:text-red-500 transition-colors p-1" title="Borrar ticket">
+                          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                        </button>
+                      </div>
+                    </div>`;
+              }
            }
         });
       } else {
@@ -357,7 +387,6 @@
       if (estadoApp.historial_meses && estadoApp.historial_meses.length > 0) {
         listaMeses.innerHTML = '';
         [...estadoApp.historial_meses].reverse().forEach((mes, indiceReverso) => {
-          // Calculamos el índice real (original) para poder borrarlo correctamente
           const indiceOriginal = estadoApp.historial_meses.length - 1 - indiceReverso;
           listaMeses.innerHTML += `
             <div class="flex items-center bg-gray-50/50 p-3 rounded-xl border border-gray-100 group">
@@ -368,7 +397,6 @@
               <div class="text-right text-[10px] text-gray-400 leading-tight mr-3">
                 Ingreso: ${mes.ingresos}<br>Fijos: -${mes.fijos}<br>Visa: -${mes.tarjetas}
               </div>
-              <!-- BOTÓN PAPELERA PARA EL MES -->
               <button onclick="borrarMesGuardado(${indiceOriginal})" class="text-red-300 hover:text-red-500 bg-red-50 rounded-md p-1.5 transition-colors shadow-sm" title="Borrar mes">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
               </button>
@@ -381,33 +409,31 @@
       recalcularTotal();
     }
 
-    // --- NUEVO: FUNCIÓN PARA BORRAR UN MES DEL HISTORIAL ---
+    function forzarCobro(idGasto) {
+      if (confirm("¿Marcar como pagado YA? El dinero se restará de tu saldo disponible inmediatamente.")) {
+        let indice = estadoApp.historial_visa.indexOf(idGasto);
+        if (indice !== -1) {
+           let partes = idGasto.split('|');
+           let nuevoId = `${partes[0]}|${partes[1]}|${partes[2]}`;
+           estadoApp.historial_visa[indice] = nuevoId;
+           
+           guardarEnNube();
+           dibujarInterfaz();
+        }
+      }
+    }
+
     function borrarMesGuardado(indice) {
-      if (confirm("¿Estás seguro de que quieres borrar este mes del historial? (Solo se borra el resumen visual, no afecta a tu dinero real actual).")) {
-        // Quitamos el mes seleccionado de la lista
+      if (confirm("¿Estás seguro de que quieres borrar este mes del historial?")) {
         estadoApp.historial_meses.splice(indice, 1);
-        
-        // Guardamos en la nube y actualizamos la interfaz
         guardarEnNube();
         dibujarInterfaz();
       }
     }
 
     function borrarTicketVisa(idGasto) {
-      if (confirm("¿Seguro que quieres borrar este ticket? El dinero se devolverá a tu saldo disponible.")) {
-        let precioGasto = 0;
-        if (idGasto.includes('|')) {
-           precioGasto = Number(idGasto.split('|')[2]);
-        } else {
-           const partes = idGasto.split('-');
-           precioGasto = Number(partes[partes.length - 1]);
-        }
-
-        estadoApp.saldo_visa = Number((estadoApp.saldo_visa - Math.abs(precioGasto)).toFixed(2));
-        if (estadoApp.saldo_visa < 0) estadoApp.saldo_visa = 0; 
-        
+      if (confirm("¿Seguro que quieres borrar este ticket?")) {
         estadoApp.historial_visa = estadoApp.historial_visa.filter(id => id !== idGasto);
-        
         guardarEnNube();
         dibujarInterfaz();
       }
@@ -444,9 +470,35 @@
           fijosValor += Number(caja ? caja.value : g.valor);
        });
        
+       let sumaVisaReal = 0;
+       estadoApp.historial_visa.forEach(idGasto => {
+            let partes = idGasto.includes('|') ? idGasto.split('|') : idGasto.split('-');
+            let p_precio = Number(partes.includes('|') ? partes[2] : partes[partes.length - 1]);
+            
+            let esPendiente = false;
+            let p_fecha_cargo = partes.includes('|') ? partes[3] : undefined;
+            
+            if (p_fecha_cargo) {
+                let fParts = p_fecha_cargo.split('/');
+                let fDate = new Date(new Date().getFullYear(), fParts[1]-1, fParts[0]);
+                let hoy = new Date(); hoy.setHours(0,0,0,0);
+                if (fDate > hoy) {
+                    esPendiente = true; 
+                }
+            }
+
+            if (!esPendiente) {
+                sumaVisaReal += p_precio;
+            }
+       });
+
+       estadoApp.saldo_visa = sumaVisaReal; 
+       
        document.getElementById('total-ingreso').innerText = nominaValor.toFixed(2) + " €";
        document.getElementById('total-fijos').innerText = fijosValor.toFixed(2) + " €";
+       
        document.getElementById('total-tarjetas').innerText = estadoApp.saldo_visa.toFixed(2) + " €";
+       document.getElementById('gasto-visa').innerText = estadoApp.saldo_visa.toFixed(2) + " €";
 
        let saldo = nominaValor - fijosValor - estadoApp.saldo_visa;
        document.getElementById('saldo-total').innerText = saldo.toFixed(2) + " €";
@@ -516,7 +568,6 @@
           window.open(urlWhatsApp, '_blank');
         }
 
-        estadoApp.saldo_visa = 0;
         estadoApp.historial_visa = []; 
         guardarEnNube();
         dibujarInterfaz();
@@ -529,6 +580,8 @@
       let precioString = document.getElementById('manual-precio').value.replace(',', '.');
       const precio = Math.abs(Number(precioString) || 0);
       const fechaInput = document.getElementById('manual-fecha').value; 
+      
+      const fechaCargoInput = document.getElementById('manual-fecha-cargo').value;
 
       if (!comercio || precio === 0 || !fechaInput) {
         alert("Por favor, rellena el lugar, el precio y la fecha correcta.");
@@ -537,23 +590,29 @@
 
       const partesFecha = fechaInput.split('-');
       const fechaFormateada = `${partesFecha[2]}/${partesFecha[1]}`;
+      
+      let fechaCargoFormateada = "";
+      if (fechaCargoInput) {
+          const partesCargo = fechaCargoInput.split('-');
+          fechaCargoFormateada = `${partesCargo[2]}/${partesCargo[1]}`;
+      }
 
       const comercioDNI = comercio.replace(/\s+/g, '').toLowerCase();
-      const idGastoInterno = `${fechaFormateada}|${comercioDNI}|${precio}`;
+      const idGastoInterno = fechaCargoFormateada ? `${fechaFormateada}|${comercioDNI}|${precio}|${fechaCargoFormateada}` : `${fechaFormateada}|${comercioDNI}|${precio}`;
 
       if (estadoApp.historial_visa.includes(idGastoInterno)) {
-        alert(`⚠️ ¡Cuidado! El gasto de ${precio}€ en ${comercio} del día ${fechaFormateada} ya estaba guardado en la memoria (es un duplicado).`);
+        alert(`⚠️ ¡Cuidado! El gasto de ${precio}€ en ${comercio} ya estaba guardado en la memoria (es un duplicado).`);
       } else {
         estadoApp.historial_visa.push(idGastoInterno);
-        estadoApp.saldo_visa += precio;
         
         guardarEnNube();
         dibujarInterfaz();
         
         document.getElementById('manual-comercio').value = '';
         document.getElementById('manual-precio').value = '';
+        document.getElementById('manual-fecha-cargo').value = ''; 
         
-        alert(`✅ Gasto de ${precio}€ en ${comercio} guardado en la nube con éxito.`);
+        alert(`✅ Gasto guardado con éxito.`);
       }
     }
 
@@ -591,7 +650,6 @@
         let listaGastos = Array.isArray(gastos) ? gastos : (gastos.gastos || []);
 
         if (listaGastos.length > 0) {
-          let totalNuevos = 0;
           let gastosAceptados = 0;
           let gastosIgnorados = 0;
           let mensaje = "Resultado de la lectura:\n\n";
@@ -602,26 +660,29 @@
             
             const fechaDNI = String(gasto.fecha).trim();
             const comercioDNI = String(gasto.comercio).replace(/\s+/g, '').toLowerCase();
-            const idGastoInterno = `${fechaDNI}|${comercioDNI}|${importeNumero}`;
+            
+            let p_fecha_cargo = "";
+            if (gasto.fecha_cargo) {
+                p_fecha_cargo = String(gasto.fecha_cargo).trim();
+            }
+
+            const idGastoInterno = p_fecha_cargo ? `${fechaDNI}|${comercioDNI}|${importeNumero}|${p_fecha_cargo}` : `${fechaDNI}|${comercioDNI}|${importeNumero}`;
 
             if (estadoApp.historial_visa.includes(idGastoInterno)) {
               gastosIgnorados++; 
             } else {
               estadoApp.historial_visa.push(idGastoInterno);
-              totalNuevos += importeNumero;
               gastosAceptados++;
               mensaje += `✅ Nuevo: ${obtenerIcono(gasto.comercio)} ${gasto.fecha} | ${gasto.comercio} | ${importeNumero.toFixed(2)} €\n`;
             }
           });
 
           if (gastosAceptados > 0) {
-            estadoApp.saldo_visa += totalNuevos;
             guardarEnNube(); 
             dibujarInterfaz();
           }
           
           mensaje += `\nResumen: ${gastosAceptados} nuevos añadidos, ${gastosIgnorados} repetidos ignorados.\n`;
-          mensaje += `TOTAL RESTADO HOY: ${totalNuevos.toFixed(2)} €`;
           alert(mensaje);
 
         } else {

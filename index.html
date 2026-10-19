@@ -473,7 +473,7 @@
        let sumaVisaReal = 0;
        estadoApp.historial_visa.forEach(idGasto => {
             let partes = idGasto.includes('|') ? idGasto.split('|') : idGasto.split('-');
-            let p_precio = Number(partes.includes('|') ? partes[2] : partes[partes.length - 1]);
+            let p_precio = Number(idGasto.includes('|') ? partes[2] : partes[partes.length - 1]);
             
             let esPendiente = false;
             let p_fecha_cargo = partes.includes('|') ? partes[3] : undefined;

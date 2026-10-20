@@ -698,39 +698,51 @@
     });
 
     function convertirABase64(file) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.readAsDataURL(file);
-    reader.onload = (evento) => {
-      const img = new Image();
-      img.src = evento.target.result;
-      img.onload = () => {
-        const canvas = document.createElement('canvas');
-        let width = img.width;
-        let height = img.height;
-        
-        // Límite de seguridad para capturas largas (scroll)
-        const MAX_HEIGHT = 2000; 
-        if (height > MAX_HEIGHT) {
-          width = Math.round((width * MAX_HEIGHT) / height);
-          height = MAX_HEIGHT;
-        }
-        
-        canvas.width = width;
-        canvas.height = height;
-        const ctx = canvas.getContext('2d');
-        
-        // Rellenamos el fondo de blanco por seguridad
-        ctx.fillStyle = "#FFFFFF";
-        ctx.fillRect(0, 0, width, height);
-        
-        ctx.drawImage(img, 0, 0, width, height);
-        resolve(canvas.toDataURL('image/jpeg', 0.7).split(',')[1]);
-      };
-    };
-    reader.onerror = error => reject(error);
-  });
-}
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = (evento) => {
+          const img = new Image();
+          
+          img.onload = () => {
+            const canvas = document.createElement('canvas');
+            let width = img.width;
+            let height = img.height;
+            
+            // Limitamos por "Área total" (aprox 1.5 Megapíxeles)
+            // Así garantizamos que no se distorsione ni se quede en blanco en ningún móvil
+            const MAX_AREA = 1500000;
+            const area = width * height;
+            
+            if (area > MAX_AREA) {
+              const ratio = Math.sqrt(MAX_AREA / area);
+              width = Math.round(width * ratio);
+              height = Math.round(height * ratio);
+            }
+            
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext('2d');
+            
+            // Fondo blanco de seguridad
+            ctx.fillStyle = "#FFFFFF";
+            ctx.fillRect(0, 0, width, height);
+            
+            // Dibujamos la foto redimensionada
+            ctx.drawImage(img, 0, 0, width, height);
+            
+            // Calidad 80% (0.8): mantiene el texto súper nítido pero pesa muy poco
+            resolve(canvas.toDataURL('image/jpeg', 0.8).split(',')[1]);
+          };
+          
+          img.onerror = error => reject(error);
+          
+          // Le pasamos la foto al final del todo para evitar que se atragante
+          img.src = evento.target.result;
+        };
+        reader.onerror = error => reject(error);
+      });
+    }
   </script>
 </body>
 </html>

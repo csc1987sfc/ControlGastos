@@ -189,10 +189,10 @@
       navigator.serviceWorker.register('sw.js');
     }
 
-    // --- ¡PON AQUÍ TUS DATOS PÚBLICOS DE SUPABASE! ---
+    // --- TUS DATOS PÚBLICOS DE SUPABASE ---
     const SUPABASE_URL = "https://urpjnmbhhbzeirktpzcv.supabase.co";
     const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVycGpubWJoaGJ6ZWlya3RwemN2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk2NDU3NDQsImV4cCI6MjA5NTIyMTc0NH0.-DFxwerywoeoiOPzErn2PVCCosTKjuUMIVBBdXQ_RNE";
-    // --------------------------------------------------
+    // --------------------------------------
 
     let estadoApp = {
       nomina: 1800,
@@ -208,7 +208,6 @@
       contador_fijos: 5
     };
 
-    // NUEVO: Candado de seguridad para no machacar datos sin conexión
     let conexionNubeActiva = false;
 
     window.onload = async () => {
@@ -223,6 +222,30 @@
       const div = document.createElement('div');
       div.textContent = texto;
       return div.innerHTML;
+    }
+
+    // MEJORA A: Función para ordenar automáticamente los tickets del más reciente al más antiguo
+    function ordenarTicketsPorFecha(listaTickets) {
+      const hoy = new Date();
+      const mesActual = hoy.getMonth() + 1;
+      const anioActual = hoy.getFullYear();
+
+      return [...listaTickets].sort((a, b) => {
+        const fechaStrA = a.includes('|') ? a.split('|')[0] : a.split('-')[0];
+        const fechaStrB = b.includes('|') ? b.split('|')[0] : b.split('-')[0];
+
+        const [diaA, mesA] = fechaStrA.split('/').map(n => parseInt(n, 10) || 1);
+        const [diaB, mesB] = fechaStrB.split('/').map(n => parseInt(n, 10) || 1);
+
+        // Si estamos en enero y hay un ticket de diciembre, sabemos que es del año pasado
+        const anioA = (mesActual === 1 && mesA === 12) ? anioActual - 1 : anioActual;
+        const anioB = (mesActual === 1 && mesB === 12) ? anioActual - 1 : anioActual;
+
+        const tiempoA = new Date(anioA, mesA - 1, diaA).getTime();
+        const tiempoB = new Date(anioB, mesB - 1, diaB).getTime();
+
+        return tiempoB - tiempoA; // Los más nuevos arriba
+      });
     }
 
     function esGastoPendiente(p_fecha_cargo, p_fecha_compra) {
@@ -297,7 +320,6 @@
              estadoApp.contador_fijos = nube.contador_fijos || 5;
            }
         } else {
-           // Primer uso real
            guardarEnNube(); 
         }
         
@@ -369,7 +391,11 @@
       const listaVisa = document.getElementById('lista-movimientos-visa');
       if (estadoApp.historial_visa && estadoApp.historial_visa.length > 0) {
         listaVisa.innerHTML = '<h4 class="text-[10px] font-bold text-gray-400 uppercase mb-2 tracking-wider">Últimos Tickets</h4>';
-        estadoApp.historial_visa.forEach(idGasto => {
+        
+        // MEJORA A: Ordenamos la lista por fecha antes de dibujarla en pantalla
+        const ticketsOrdenados = ordenarTicketsPorFecha(estadoApp.historial_visa);
+
+        ticketsOrdenados.forEach(idGasto => {
            let p_fecha, p_comercio, p_precio, p_fecha_cargo;
            
            if (idGasto.includes('|')) {
@@ -390,6 +416,9 @@
               const comercioProtegido = textoSeguro(p_comercio.toUpperCase());
               const fechaProtegida = textoSeguro(p_fecha);
               
+              // MEJORA B: Protegemos el ID por si algún ticket antiguo tenía comillas
+              const idSeguro = idGasto.replace(/'/g, "\\'");
+              
               let esPendiente = esGastoPendiente(p_fecha_cargo, p_fecha);
 
               if (esPendiente) {
@@ -401,8 +430,8 @@
                       </div>
                       <div class="flex items-center gap-2">
                         <span class="font-bold text-orange-400 whitespace-nowrap">-${p_precio} €</span>
-                        <button onclick="forzarCobro('${idGasto}')" class="text-emerald-500 bg-emerald-100 hover:bg-emerald-200 rounded px-1.5 py-0.5 transition-colors shadow-sm" title="Cobrar YA">✅</button>
-                        <button onclick="borrarTicketVisa('${idGasto}')" class="text-gray-300 hover:text-red-500 transition-colors p-1" title="Borrar">
+                        <button onclick="forzarCobro('${idSeguro}')" class="text-emerald-500 bg-emerald-100 hover:bg-emerald-200 rounded px-1.5 py-0.5 transition-colors shadow-sm" title="Cobrar YA">✅</button>
+                        <button onclick="borrarTicketVisa('${idSeguro}')" class="text-gray-300 hover:text-red-500 transition-colors p-1" title="Borrar">
                           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
                         </button>
                       </div>
@@ -413,7 +442,7 @@
                       <span class="text-gray-700 font-medium truncate pr-2 flex-1">${icono} ${fechaProtegida} - ${comercioProtegido}</span>
                       <div class="flex items-center gap-1.5">
                         <span class="font-bold text-red-500 whitespace-nowrap">-${p_precio} €</span>
-                        <button onclick="borrarTicketVisa('${idGasto}')" class="text-gray-300 hover:text-red-500 transition-colors p-1" title="Borrar ticket">
+                        <button onclick="borrarTicketVisa('${idSeguro}')" class="text-gray-300 hover:text-red-500 transition-colors p-1" title="Borrar ticket">
                           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
                         </button>
                       </div>
@@ -650,15 +679,14 @@
           fechaCargoFormateada = `${partesCargo[2]}/${partesCargo[1]}`;
       }
 
-      // NUEVO: Borramos los símbolos | para que no rompan el sistema
-      const comercioDNI = comercio.replace(/\s+/g, '').replace(/\|/g, '').toLowerCase();
+      // MEJORA B: Borramos espacios, símbolos | y comillas (' y ") para que nunca fallen los botones
+      const comercioDNI = comercio.replace(/\s+/g, '').replace(/[|'"]/g, '').toLowerCase();
       
-      // NUEVO: El núcleo central para detectar duplicados reales (fecha + tienda + precio)
       const coreID = `${fechaFormateada}|${comercioDNI}|${precio}`;
       const idGastoInterno = fechaCargoFormateada ? `${coreID}|${fechaCargoFormateada}` : coreID;
 
-      // Buscamos si existe ya un gasto guardado que empiece exactamente igual
-      const yaExiste = estadoApp.historial_visa.some(idGuardado => idGuardado.startsWith(coreID));
+      // MEJORA 1: Freno exacto de precios con coreID + "|"
+      const yaExiste = estadoApp.historial_visa.some(idGuardado => idGuardado === coreID || idGuardado.startsWith(coreID + "|"));
 
       if (yaExiste) {
         alert(`⚠️ ¡Cuidado! El gasto de ${precio}€ en ${comercio} ya estaba guardado en la memoria (es un duplicado).`);
@@ -726,19 +754,19 @@
             
             const fechaDNI = String(gasto.fecha).trim();
             
-            // NUEVO: Borramos los símbolos | para que no rompan el sistema
-            const comercioDNI = String(gasto.comercio).replace(/\s+/g, '').replace(/\|/g, '').toLowerCase();
+            // MEJORA B: Limpiamos espacios, símbolos | y comillas (' y ")
+            const comercioDNI = String(gasto.comercio).replace(/\s+/g, '').replace(/[|'"]/g, '').toLowerCase();
             
             let p_fecha_cargo = "";
             if (gasto.fecha_cargo) {
                 p_fecha_cargo = String(gasto.fecha_cargo).trim();
             }
 
-            // NUEVO: Comprobación por núcleo (coreID) ignora si el banco quitó "Se cargará el..."
             const coreID = `${fechaDNI}|${comercioDNI}|${importeNumero}`;
             const idGastoInterno = p_fecha_cargo ? `${coreID}|${p_fecha_cargo}` : coreID;
 
-            const yaExiste = estadoApp.historial_visa.some(idGuardado => idGuardado.startsWith(coreID));
+            // MEJORA 1: Freno exacto de precios con coreID + "|"
+            const yaExiste = estadoApp.historial_visa.some(idGuardado => idGuardado === coreID || idGuardado.startsWith(coreID + "|"));
 
             if (yaExiste) {
               gastosIgnorados++; 

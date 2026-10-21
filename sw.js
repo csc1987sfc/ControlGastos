@@ -1,15 +1,14 @@
-const NOMBRE_CACHE = 'presufacil-v1';
+const NOMBRE_CACHE = 'presufacil-v2';
 
-// Estos son los archivos que el móvil guardará en su memoria interna
+// MEJORA C: Quitamos el enlace externo de Tailwind para que la caché nunca se bloquee al instalarse
 const ARCHIVOS_CACHE = [
   './',
   './index.html',
   './manifest.json',
-  './cerdito.png',
-  'https://cdn.tailwindcss.com'
+  './cerdito.png'
 ];
 
-// Al instalar la app, descarga y guarda los archivos
+// Al instalar la app, descarga y guarda los archivos propios sin bloquearse
 self.addEventListener('install', (evento) => {
   evento.waitUntil(
     caches.open(NOMBRE_CACHE)
@@ -29,20 +28,19 @@ self.addEventListener('activate', (evento) => {
           }
         })
       );
-    })
+    }).then(() => self.clients.claim())
   );
 });
 
 // Cuando la app pide internet, primero mira si lo tiene guardado en la memoria
 self.addEventListener('fetch', (evento) => {
-  // Ignoramos las llamadas a la base de datos de Supabase para que no se atasquen
+  // Ignoramos las llamadas a la base de datos de Supabase para que siempre vayan en tiempo real
   if (evento.request.url.includes('supabase.co') || evento.request.method !== 'GET') {
     return;
   }
 
   evento.respondWith(
     caches.match(evento.request).then(respuestaCache => {
-      // Si el archivo está en la memoria, lo devuelve al instante. Si no, lo busca en internet.
       return respuestaCache || fetch(evento.request);
     })
   );

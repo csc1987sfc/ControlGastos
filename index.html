@@ -7,7 +7,7 @@
   
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#10B981">
-  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="[https://cdn.tailwindcss.com](https://cdn.tailwindcss.com)"></script>
   
   <style>
     .modal-oculto { display: none; }
@@ -131,9 +131,11 @@
         <div class="flex flex-col gap-3">
           <div class="flex gap-2">
             <input type="text" id="manual-comercio" placeholder="Lugar (Ej: Mercadona)" class="flex-1 border border-gray-300 rounded-lg p-2.5 text-sm outline-none focus:border-blue-500 shadow-sm">
-            <div class="flex items-center gap-1 bg-white border border-gray-300 rounded-lg px-2 w-28 shadow-sm">
-              <input type="number" id="manual-precio" step="0.01" placeholder="0" class="w-full bg-transparent text-right outline-none text-gray-700 text-sm font-bold">
-              <span class="text-gray-400 text-xs font-bold pr-1">€</span>
+            <div class="flex flex-col items-end gap-1 relative">
+              <div class="flex items-center gap-1 bg-white border border-gray-300 rounded-lg px-2 h-[42px] w-28 shadow-sm">
+                <input type="number" id="manual-precio" step="0.01" placeholder="0" title="Si es devolución añade un -" class="w-full bg-transparent text-right outline-none text-gray-700 text-sm font-bold">
+                <span class="text-gray-400 text-xs font-bold pr-1">€</span>
+              </div>
             </div>
           </div>
           <div class="flex gap-2">
@@ -190,7 +192,7 @@
     }
 
     // --- TUS DATOS PÚBLICOS DE SUPABASE ---
-    const SUPABASE_URL = "https://urpjnmbhhbzeirktpzcv.supabase.co";
+    const SUPABASE_URL = "[https://urpjnmbhhbzeirktpzcv.supabase.co](https://urpjnmbhhbzeirktpzcv.supabase.co)";
     const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVycGpubWJoaGJ6ZWlya3RwemN2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk2NDU3NDQsImV4cCI6MjA5NTIyMTc0NH0.-DFxwerywoeoiOPzErn2PVCCosTKjuUMIVBBdXQ_RNE";
     // --------------------------------------
 
@@ -224,7 +226,6 @@
       return div.innerHTML;
     }
 
-    // MEJORA A: Función para ordenar automáticamente los tickets del más reciente al más antiguo
     function ordenarTicketsPorFecha(listaTickets) {
       const hoy = new Date();
       const mesActual = hoy.getMonth() + 1;
@@ -237,14 +238,13 @@
         const [diaA, mesA] = fechaStrA.split('/').map(n => parseInt(n, 10) || 1);
         const [diaB, mesB] = fechaStrB.split('/').map(n => parseInt(n, 10) || 1);
 
-        // Si estamos en enero y hay un ticket de diciembre, sabemos que es del año pasado
         const anioA = (mesActual === 1 && mesA === 12) ? anioActual - 1 : anioActual;
         const anioB = (mesActual === 1 && mesB === 12) ? anioActual - 1 : anioActual;
 
         const tiempoA = new Date(anioA, mesA - 1, diaA).getTime();
         const tiempoB = new Date(anioB, mesB - 1, diaB).getTime();
 
-        return tiempoB - tiempoA; // Los más nuevos arriba
+        return tiempoB - tiempoA; 
       });
     }
 
@@ -392,7 +392,6 @@
       if (estadoApp.historial_visa && estadoApp.historial_visa.length > 0) {
         listaVisa.innerHTML = '<h4 class="text-[10px] font-bold text-gray-400 uppercase mb-2 tracking-wider">Últimos Tickets</h4>';
         
-        // MEJORA A: Ordenamos la lista por fecha antes de dibujarla en pantalla
         const ticketsOrdenados = ordenarTicketsPorFecha(estadoApp.historial_visa);
 
         ticketsOrdenados.forEach(idGasto => {
@@ -415,11 +414,19 @@
               const icono = obtenerIcono(p_comercio);
               const comercioProtegido = textoSeguro(p_comercio.toUpperCase());
               const fechaProtegida = textoSeguro(p_fecha);
-              
-              // MEJORA B: Protegemos el ID por si algún ticket antiguo tenía comillas
               const idSeguro = idGasto.replace(/'/g, "\\'");
               
               let esPendiente = esGastoPendiente(p_fecha_cargo, p_fecha);
+              
+              // LÓGICA DE COLOR Y SÍMBOLO PARA DEVOLUCIONES
+              let valorNumerico = Number(p_precio);
+              let esDevolucion = valorNumerico < 0;
+              let valorAbsoluto = Math.abs(valorNumerico).toFixed(2).replace('.', ',');
+              let signoMostrado = esDevolucion ? "+" : "-";
+              
+              let colorPrecioNormal = esDevolucion ? "text-emerald-500" : "text-red-500";
+              let colorPrecioPendiente = esDevolucion ? "text-emerald-400" : "text-orange-400";
+              let colorFinal = esPendiente ? colorPrecioPendiente : colorPrecioNormal;
 
               if (esPendiente) {
                   listaVisa.innerHTML += `
@@ -429,7 +436,7 @@
                           <span class="text-[9px] text-orange-600 font-bold tracking-wide mt-0.5">⏳ Se cargará el ${p_fecha_cargo}</span>
                       </div>
                       <div class="flex items-center gap-2">
-                        <span class="font-bold text-orange-400 whitespace-nowrap">-${p_precio} €</span>
+                        <span class="font-bold ${colorFinal} whitespace-nowrap">${signoMostrado}${valorAbsoluto} €</span>
                         <button onclick="forzarCobro('${idSeguro}')" class="text-emerald-500 bg-emerald-100 hover:bg-emerald-200 rounded px-1.5 py-0.5 transition-colors shadow-sm" title="Cobrar YA">✅</button>
                         <button onclick="borrarTicketVisa('${idSeguro}')" class="text-gray-300 hover:text-red-500 transition-colors p-1" title="Borrar">
                           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
@@ -441,7 +448,7 @@
                     <div class="flex justify-between items-center text-xs py-1.5 border-b border-gray-100 last:border-0 group px-1">
                       <span class="text-gray-700 font-medium truncate pr-2 flex-1">${icono} ${fechaProtegida} - ${comercioProtegido}</span>
                       <div class="flex items-center gap-1.5">
-                        <span class="font-bold text-red-500 whitespace-nowrap">-${p_precio} €</span>
+                        <span class="font-bold ${colorFinal} whitespace-nowrap">${signoMostrado}${valorAbsoluto} €</span>
                         <button onclick="borrarTicketVisa('${idSeguro}')" class="text-gray-300 hover:text-red-500 transition-colors p-1" title="Borrar ticket">
                           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
                         </button>
@@ -551,6 +558,7 @@
             let esPendiente = esGastoPendiente(p_fecha_cargo, p_fecha);
 
             if (!esPendiente) {
+                // Al sumar un número negativo (devolución), el total gastado de la VISA baja automáticamente
                 sumaVisaReal += p_precio;
             }
        });
@@ -565,6 +573,7 @@
        document.getElementById('total-tarjetas').innerText = formatoEuro(estadoApp.saldo_visa);
        document.getElementById('gasto-visa').innerText = formatoEuro(estadoApp.saldo_visa);
 
+       // Si gastaste 100 y te devuelven 30, saldo_visa es 70. Así que te quita menos dinero del principal. ¡Magia!
        let saldo = nominaValor - fijosValor - estadoApp.saldo_visa;
        document.getElementById('saldo-total').innerText = formatoEuro(saldo);
 
@@ -627,7 +636,7 @@
         });
 
         let textoWhatsApp = `📊 *CIERRE DE CUENTAS - PRESUFÁCIL*\n📅 Fecha: ${fechaCierre}\n\n💰 Ingresos: ${totalIngreso}\n🏠 Gastos Fijos: ${totalFijos}\n💳 Tarjeta: ${totalTarjetas}\n------------------------\n✅ *SALDO SOBRANTE: ${saldoRestante}*\n\n¡Periodo cerrado y reseteado! 🐷`;
-        let urlWhatsApp = `https://api.whatsapp.com/send?text=${encodeURIComponent(textoWhatsApp)}`;
+        let urlWhatsApp = `[https://api.whatsapp.com/send?text=$](https://api.whatsapp.com/send?text=$){encodeURIComponent(textoWhatsApp)}`;
 
         if(confirm("Resumen guardado en la App. ¿Quieres enviarlo también por WhatsApp?")) {
           window.open(urlWhatsApp, '_blank');
@@ -660,7 +669,8 @@
       
       const comercio = document.getElementById('manual-comercio').value.trim();
       let precioString = document.getElementById('manual-precio').value.replace(',', '.');
-      const precio = Math.abs(Number(precioString) || 0);
+      // Ahora cogemos el número tal cual, permitiendo que sea negativo
+      const precio = Number(precioString) || 0;
       const fechaInput = document.getElementById('manual-fecha').value; 
       
       const fechaCargoInput = document.getElementById('manual-fecha-cargo').value;
@@ -679,17 +689,14 @@
           fechaCargoFormateada = `${partesCargo[2]}/${partesCargo[1]}`;
       }
 
-      // MEJORA B: Borramos espacios, símbolos | y comillas (' y ") para que nunca fallen los botones
       const comercioDNI = comercio.replace(/\s+/g, '').replace(/[|'"]/g, '').toLowerCase();
-      
       const coreID = `${fechaFormateada}|${comercioDNI}|${precio}`;
       const idGastoInterno = fechaCargoFormateada ? `${coreID}|${fechaCargoFormateada}` : coreID;
 
-      // MEJORA 1: Freno exacto de precios con coreID + "|"
       const yaExiste = estadoApp.historial_visa.some(idGuardado => idGuardado === coreID || idGuardado.startsWith(coreID + "|"));
 
       if (yaExiste) {
-        alert(`⚠️ ¡Cuidado! El gasto de ${precio}€ en ${comercio} ya estaba guardado en la memoria (es un duplicado).`);
+        alert(`⚠️ ¡Cuidado! El movimiento de ${precio}€ en ${comercio} ya estaba guardado en la memoria (es un duplicado).`);
       } else {
         estadoApp.historial_visa.push(idGastoInterno);
         
@@ -700,7 +707,7 @@
         document.getElementById('manual-precio').value = '';
         document.getElementById('manual-fecha-cargo').value = ''; 
         
-        alert(`✅ Gasto guardado con éxito.`);
+        alert(`✅ Movimiento guardado con éxito.`);
       }
     }
 
@@ -750,11 +757,10 @@
           
           listaGastos.forEach(gasto => {
             let importeLimpio = String(gasto.importe).replace(',', '.');
-            let importeNumero = Math.abs(Number(importeLimpio) || 0); 
+            // Quitamos el conversor a positivo para que entren los números negativos
+            let importeNumero = Number(importeLimpio) || 0; 
             
             const fechaDNI = String(gasto.fecha).trim();
-            
-            // MEJORA B: Limpiamos espacios, símbolos | y comillas (' y ")
             const comercioDNI = String(gasto.comercio).replace(/\s+/g, '').replace(/[|'"]/g, '').toLowerCase();
             
             let p_fecha_cargo = "";
@@ -765,7 +771,6 @@
             const coreID = `${fechaDNI}|${comercioDNI}|${importeNumero}`;
             const idGastoInterno = p_fecha_cargo ? `${coreID}|${p_fecha_cargo}` : coreID;
 
-            // MEJORA 1: Freno exacto de precios con coreID + "|"
             const yaExiste = estadoApp.historial_visa.some(idGuardado => idGuardado === coreID || idGuardado.startsWith(coreID + "|"));
 
             if (yaExiste) {
@@ -786,7 +791,7 @@
           alert(mensaje);
 
         } else {
-          alert("Gemini no ha detectado ningún gasto válido.");
+          alert("Gemini no ha detectado ningún movimiento válido.");
         }
       } catch (error) {
         alert("Hubo un error de conexión.");

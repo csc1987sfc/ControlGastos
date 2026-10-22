@@ -7,7 +7,7 @@
   
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#10B981">
-  <script src="[https://cdn.tailwindcss.com](https://cdn.tailwindcss.com)"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
   
   <style>
     .modal-oculto { display: none; }
@@ -192,7 +192,7 @@
     }
 
     // --- TUS DATOS PÚBLICOS DE SUPABASE ---
-    const SUPABASE_URL = "[https://urpjnmbhhbzeirktpzcv.supabase.co](https://urpjnmbhhbzeirktpzcv.supabase.co)";
+    const SUPABASE_URL = "https://urpjnmbhhbzeirktpzcv.supabase.co";
     const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVycGpubWJoaGJ6ZWlya3RwemN2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk2NDU3NDQsImV4cCI6MjA5NTIyMTc0NH0.-DFxwerywoeoiOPzErn2PVCCosTKjuUMIVBBdXQ_RNE";
     // --------------------------------------
 
@@ -636,8 +636,8 @@
         });
 
         let textoWhatsApp = `📊 *CIERRE DE CUENTAS - PRESUFÁCIL*\n📅 Fecha: ${fechaCierre}\n\n💰 Ingresos: ${totalIngreso}\n🏠 Gastos Fijos: ${totalFijos}\n💳 Tarjeta: ${totalTarjetas}\n------------------------\n✅ *SALDO SOBRANTE: ${saldoRestante}*\n\n¡Periodo cerrado y reseteado! 🐷`;
-        let urlWhatsApp = `[https://api.whatsapp.com/send?text=$](https://api.whatsapp.com/send?text=$){encodeURIComponent(textoWhatsApp)}`;
-
+        let urlWhatsApp = `https://api.whatsapp.com/send?text=${encodeURIComponent(textoWhatsApp)}`;
+        
         if(confirm("Resumen guardado en la App. ¿Quieres enviarlo también por WhatsApp?")) {
           window.open(urlWhatsApp, '_blank');
         }

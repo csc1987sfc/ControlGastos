@@ -1,4 +1,4 @@
-const NOMBRE_CACHE = 'presufacil-v2';
+const NOMBRE_CACHE = 'presufacil-v3';
 
 // MEJORA C: Quitamos el enlace externo de Tailwind para que la caché nunca se bloquee al instalarse
 const ARCHIVOS_CACHE = [

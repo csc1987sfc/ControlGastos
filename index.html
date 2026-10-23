@@ -819,7 +819,7 @@
       }
     });
 
-    // COMPRESIÓN PARA EVITAR EL LÍMITE DE MEMORIA DE SUPABASE
+    // COMPRESIÓN 1:1 SIN ESCALADO PARA EVITAR QUE EL MÓVIL BORRE LOS TEXTOS GRISES
     function convertirABase64(file) {
       return new Promise((resolve, reject) => {
         const urlTemporal = URL.createObjectURL(file);
@@ -831,8 +831,10 @@
           let width = img.width;
           let height = img.height;
           
-          const MAX_WIDTH = 900; 
-          const MAX_HEIGHT = 2500;
+          // LÍMITES AMPLIADOS: Al poner 1500, la captura del móvil (1080) 
+          // pasa intacta sin reducirse, manteniendo la letra nítida al 100%.
+          const MAX_WIDTH = 1500; 
+          const MAX_HEIGHT = 3500;
           
           if (width > MAX_WIDTH) {
             height = Math.round(height * (MAX_WIDTH / width));
@@ -847,7 +849,6 @@
           canvas.height = height;
           const ctx = canvas.getContext('2d');
           
-          // Obliga al móvil a mantener la nitidez de las letras grises
           ctx.imageSmoothingEnabled = true;
           ctx.imageSmoothingQuality = 'high';
           
@@ -855,7 +856,8 @@
           ctx.fillRect(0, 0, width, height);
           ctx.drawImage(img, 0, 0, width, height);
           
-          const resultado = canvas.toDataURL('image/jpeg', 0.8).split(',')[1];
+          // Calidad subida al 90% (0.9). El archivo pesará < 1 MB (Límite Supabase: 5 MB)
+          const resultado = canvas.toDataURL('image/jpeg', 0.9).split(',')[1];
           
           if (!resultado || resultado.length < 100) {
             reject(new Error("El móvil no pudo comprimir la imagen."));

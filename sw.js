@@ -1,6 +1,5 @@
-const NOMBRE_CACHE = 'presufacil-v4';
+const NOMBRE_CACHE = 'presufacil-automatico';
 
-// MEJORA C: Quitamos el enlace externo de Tailwind para que la caché nunca se bloquee al instalarse
 const ARCHIVOS_CACHE = [
   './',
   './index.html',
@@ -8,7 +7,7 @@ const ARCHIVOS_CACHE = [
   './cerdito.png'
 ];
 
-// Al instalar la app, descarga y guarda los archivos propios sin bloquearse
+// 1. Al instalar, guarda la primera copia de seguridad
 self.addEventListener('install', (evento) => {
   evento.waitUntil(
     caches.open(NOMBRE_CACHE)
@@ -17,7 +16,7 @@ self.addEventListener('install', (evento) => {
   );
 });
 
-// Borra versiones antiguas de la caché si actualizas la app
+// 2. Limpia memorias antiguas si las hubiera
 self.addEventListener('activate', (evento) => {
   evento.waitUntil(
     caches.keys().then(nombresCache => {
@@ -32,16 +31,30 @@ self.addEventListener('activate', (evento) => {
   );
 });
 
-// Cuando la app pide internet, primero mira si lo tiene guardado en la memoria
+// 3. NUEVO SISTEMA: Primero busca en internet (para tener siempre lo último)
+// y actualiza la memoria. Si no hay internet, usa la memoria guardada.
 self.addEventListener('fetch', (evento) => {
-  // Ignoramos las llamadas a la base de datos de Supabase para que siempre vayan en tiempo real
+  // Ignoramos Supabase para que los datos bancarios vayan siempre directos
   if (evento.request.url.includes('supabase.co') || evento.request.method !== 'GET') {
     return;
   }
 
   evento.respondWith(
-    caches.match(evento.request).then(respuestaCache => {
-      return respuestaCache || fetch(evento.request);
-    })
+    fetch(evento.request)
+      .then((respuestaRed) => {
+        // Si hay internet y el archivo se descargó bien, actualizamos la copia en memoria
+        if (respuestaRed && respuestaRed.status === 200) {
+          const copiaParaGuardar = respuestaRed.clone();
+          caches.open(NOMBRE_CACHE).then((cache) => {
+            cache.put(evento.request, copiaParaGuardar);
+          });
+        }
+        // Y te mostramos en pantalla la versión recién descargada de internet
+        return respuestaRed;
+      })
+      .catch(() => {
+        // Si NO hay internet (falla el fetch), sacamos el archivo de la memoria del móvil
+        return caches.match(evento.request);
+      })
   );
 });

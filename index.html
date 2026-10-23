@@ -755,8 +755,10 @@
         });
 
         const gastos = await respuesta.json();
-        if (gastos.error) {
-          alert("⚠️ ERROR GEMINI:\n" + gastos.error);
+        
+        // --- MEJORA APLICADA AQUÍ: Atrapa los errores reales del servidor o de tiempo de espera ---
+        if (gastos.error || gastos.message || (!Array.isArray(gastos) && !gastos.gastos)) {
+          alert("⚠️ ERROR DEL SERVIDOR:\n" + JSON.stringify(gastos, null, 2));
           return; 
         }
 

@@ -418,7 +418,6 @@
               
               let esPendiente = esGastoPendiente(p_fecha_cargo, p_fecha);
               
-              // LÓGICA DE COLOR Y SÍMBOLO PARA DEVOLUCIONES
               let valorNumerico = Number(p_precio);
               let esDevolucion = valorNumerico < 0;
               let valorAbsoluto = Math.abs(valorNumerico).toFixed(2).replace('.', ',');
@@ -558,7 +557,6 @@
             let esPendiente = esGastoPendiente(p_fecha_cargo, p_fecha);
 
             if (!esPendiente) {
-                // Al sumar un número negativo (devolución), el total gastado de la VISA baja automáticamente
                 sumaVisaReal += p_precio;
             }
        });
@@ -573,7 +571,6 @@
        document.getElementById('total-tarjetas').innerText = formatoEuro(estadoApp.saldo_visa);
        document.getElementById('gasto-visa').innerText = formatoEuro(estadoApp.saldo_visa);
 
-       // Si gastaste 100 y te devuelven 30, saldo_visa es 70. Así que te quita menos dinero del principal. ¡Magia!
        let saldo = nominaValor - fijosValor - estadoApp.saldo_visa;
        document.getElementById('saldo-total').innerText = formatoEuro(saldo);
 
@@ -698,7 +695,6 @@
         if (!confirmarDuplicado) {
           return;
         }
-        // Buscamos un número libre (2), (3)... para que las dos compras puedan convivir
         let contador = 2;
         while (estadoApp.historial_visa.some(idGuardado => {
           let idPrueba = `${fechaFormateada}|${comercioBase}(${contador})|${precio}`;
@@ -817,13 +813,13 @@
       } catch (error) {
         alert("⚠️ Fallo al procesar o enviar la foto en el móvil:\n" + (error.message || error));
       } finally {
-        btnFoto.innerHTML = "Subir Captura de Tarjeta";
+        btnFoto.innerHTML = `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path></svg> Subir Captura de Tarjeta`;
         btnFoto.classList.replace('bg-gray-500', 'bg-blue-600');
         inputFoto.value = "";
       }
     });
 
-    // NUEVA FUNCIÓN OPTIMIZADA PARA MÓVILES
+    // COMPRESIÓN ULTRALIGERA PARA EVITAR EL LÍMITE DE MEMORIA DE SUPABASE
     function convertirABase64(file) {
       return new Promise((resolve, reject) => {
         const urlTemporal = URL.createObjectURL(file);
@@ -835,9 +831,8 @@
           let width = img.width;
           let height = img.height;
           
-          // Mantiene un ancho perfecto para leer letras en capturas verticales de móvil
-          const MAX_WIDTH = 1200;
-          const MAX_HEIGHT = 3500;
+          const MAX_WIDTH = 800;
+          const MAX_HEIGHT = 2200;
           
           if (width > MAX_WIDTH) {
             height = Math.round(height * (MAX_WIDTH / width));
@@ -856,9 +851,9 @@
           ctx.fillRect(0, 0, width, height);
           ctx.drawImage(img, 0, 0, width, height);
           
-          const resultado = canvas.toDataURL('image/jpeg', 0.85).split(',')[1];
+          const resultado = canvas.toDataURL('image/jpeg', 0.7).split(',')[1];
           if (!resultado || resultado.length < 100) {
-            reject(new Error("El móvil no pudo comprimir la imagen (posiblemente captura demasiado larga)."));
+            reject(new Error("El móvil no pudo comprimir la imagen."));
           } else {
             resolve(resultado);
           }
@@ -866,7 +861,7 @@
         
         img.onerror = () => {
           URL.revokeObjectURL(urlTemporal);
-          reject(new Error("El formato de esta imagen no es compatible. Haz una captura de pantalla normal en JPG o PNG."));
+          reject(new Error("El formato de esta imagen no es compatible. Haz una captura normal en JPG o PNG."));
         };
         
         img.src = urlTemporal;

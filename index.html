@@ -749,6 +749,7 @@
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
+            'apikey': SUPABASE_ANON_KEY,
             'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
           },
           body: JSON.stringify({ imagen: base64Image })
@@ -756,7 +757,6 @@
 
         const gastos = await respuesta.json();
         
-        // --- MEJORA APLICADA AQUÍ: Atrapa los errores reales del servidor o de tiempo de espera ---
         if (gastos.error || gastos.message || (!Array.isArray(gastos) && !gastos.gastos)) {
           alert("⚠️ ERROR DEL SERVIDOR:\n" + JSON.stringify(gastos, null, 2));
           return; 
@@ -768,8 +768,6 @@
           let gastosAceptados = 0;
           let gastosIgnorados = 0;
           let mensaje = "Resultado de la lectura:\n\n";
-          
-          // Contador para permitir dos compras idénticas que vengan juntas en la misma captura
           let aparicionesEnEstaFoto = {};
 
           listaGastos.forEach(gasto => {
@@ -787,7 +785,6 @@
             const claveFoto = `${fechaDNI}|${comercioBase}|${importeNumero}`;
             aparicionesEnEstaFoto[claveFoto] = (aparicionesEnEstaFoto[claveFoto] || 0) + 1;
 
-            // Si en la misma captura sale dos veces el mismo gasto el mismo día, al segundo le pone (2)
             const comercioDNI = aparicionesEnEstaFoto[claveFoto] > 1 
               ? `${comercioBase}(${aparicionesEnEstaFoto[claveFoto]})` 
               : comercioBase;
@@ -815,53 +812,64 @@
           alert(mensaje);
 
         } else {
-          alert("Gemini no ha detectado ningún movimiento válido.");
+          alert("Gemini no ha detectado ningún movimiento válido en la imagen.");
         }
       } catch (error) {
-        alert("Hubo un error de conexión.");
+        alert("⚠️ Fallo al procesar o enviar la foto en el móvil:\n" + (error.message || error));
       } finally {
-        btnFoto.innerHTML = "📸 Subir Captura de Tarjeta";
+        btnFoto.innerHTML = "Subir Captura de Tarjeta";
         btnFoto.classList.replace('bg-gray-500', 'bg-blue-600');
         inputFoto.value = "";
       }
     });
 
+    // NUEVA FUNCIÓN OPTIMIZADA PARA MÓVILES
     function convertirABase64(file) {
       return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.readAsDataURL(file);
-        reader.onload = (evento) => {
-          const img = new Image();
+        const urlTemporal = URL.createObjectURL(file);
+        const img = new Image();
+        
+        img.onload = () => {
+          URL.revokeObjectURL(urlTemporal);
+          const canvas = document.createElement('canvas');
+          let width = img.width;
+          let height = img.height;
           
-          img.onload = () => {
-            const canvas = document.createElement('canvas');
-            let width = img.width;
-            let height = img.height;
-            
-            const MAX_AREA = 1500000;
-            const area = width * height;
-            
-            if (area > MAX_AREA) {
-              const ratio = Math.sqrt(MAX_AREA / area);
-              width = Math.round(width * ratio);
-              height = Math.round(height * ratio);
-            }
-            
-            canvas.width = width;
-            canvas.height = height;
-            const ctx = canvas.getContext('2d');
-            
-            ctx.fillStyle = "#FFFFFF";
-            ctx.fillRect(0, 0, width, height);
-            ctx.drawImage(img, 0, 0, width, height);
-            
-            resolve(canvas.toDataURL('image/jpeg', 0.8).split(',')[1]);
-          };
+          // Mantiene un ancho perfecto para leer letras en capturas verticales de móvil
+          const MAX_WIDTH = 1200;
+          const MAX_HEIGHT = 3500;
           
-          img.onerror = error => reject(error);
-          img.src = evento.target.result;
+          if (width > MAX_WIDTH) {
+            height = Math.round(height * (MAX_WIDTH / width));
+            width = MAX_WIDTH;
+          }
+          if (height > MAX_HEIGHT) {
+            width = Math.round(width * (MAX_HEIGHT / height));
+            height = MAX_HEIGHT;
+          }
+          
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          
+          ctx.fillStyle = "#FFFFFF";
+          ctx.fillRect(0, 0, width, height);
+          ctx.drawImage(img, 0, 0, width, height);
+          
+          const resultado = canvas.toDataURL('image/jpeg', 0.85).split(',')[1];
+          if (!resultado || resultado.length < 100) {
+            reject(new Error("El móvil no pudo comprimir la imagen (posiblemente captura demasiado larga)."));
+          } else {
+            resolve(resultado);
+          }
         };
-        reader.onerror = error => reject(error);
+        
+        img.onerror = () => {
+          URL.revokeObjectURL(urlTemporal);
+          reject(new Error("El formato de esta imagen no es compatible. Haz una captura de pantalla normal en JPG o PNG."));
+        };
+        
+        img.src = urlTemporal;
       });
     }
   </script>
